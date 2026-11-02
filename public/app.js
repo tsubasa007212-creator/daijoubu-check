@@ -207,11 +207,17 @@ async function send(message) {
     if (!response.ok) throw new Error(response.status === 429 ? "busy" : "failed");
     const data = await response.json();
     if (current !== turnId) return;
+    const before = Object.fromEntries(session.state.statements.map((s) => [s.id, s.origin]));
     session.state = data.state;
     session.signature = data.signature;
     session.lastReply = data.turn.reply;
     session.step = data.turn.step ?? null;
     session.comparisons = data.comparisons;
+    for (const statement of data.state.statements) {
+      if (before[statement.id] && before[statement.id] !== statement.origin) {
+        session.log.push({ kind: "move", text: `「${statement.text}」${t.moved}：${t[statement.origin]}` });
+      }
+    }
     session.log.push({ kind: "me", text: data.turn.reply });
     data.turn.citations.forEach((cite) => session.log.push({ kind: "cite", ...cite }));
     save();

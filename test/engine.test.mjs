@@ -147,3 +147,24 @@ test("流れにない確認は出さない", () => {
   const turn = { reply: "確かめましょう。", step: { flow_id: "start", step_id: "none" } };
   assert.ok(checkTurn(turn, cards, { flows, requireHumanCheck: false }).some((e) => e.startsWith("step not found")));
 });
+
+test("数字が訂正されたら、その発言の比較も外れる", () => {
+  let state = applyTurn(newState(), {
+    added: [{ id: "s1", text: "40キロで音", origin: "checked" }],
+    links: [{ statement_id: "s1", card_id: "o49-speed", observation_id: "speed" }],
+  });
+  state = applyTurn(state, { changed: [{ id: "s1", origin: "checked", text: "25キロで音", reason: "メモ" }] });
+  assert.equal(comparisons(state)[0].status, "released");
+});
+
+test("訂正の後に同じ比較を結び直せる", () => {
+  let state = applyTurn(newState(), {
+    added: [{ id: "s1", text: "40キロで音", origin: "checked" }],
+    links: [{ statement_id: "s1", card_id: "o49-speed", observation_id: "speed" }],
+  });
+  state = applyTurn(state, {
+    changed: [{ id: "s1", origin: "checked", text: "45キロで音", reason: "メモ" }],
+    links: [{ statement_id: "s1", card_id: "o49-speed", observation_id: "speed" }],
+  });
+  assert.equal(comparisons(state)[0].status, "active");
+});

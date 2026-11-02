@@ -15,6 +15,7 @@ export function newState() {
 // Claudeの1回分の読み取りを台帳へ反映する。既存の発言は消さず、出所だけ変える。
 export function applyTurn(state, turn) {
   const statements = state.statements.map((s) => ({ ...s }));
+  const links = state.links.map((l) => ({ ...l }));
   for (const added of turn.added ?? []) {
     if (statements.some((s) => s.id === added.id)) throw new Error(`duplicate statement: ${added.id}`);
     statements.push({ id: added.id, text: added.text, origin: added.origin, history: [] });
@@ -24,11 +25,15 @@ export function applyTurn(state, turn) {
     if (!target) throw new Error(`unknown statement: ${change.id}`);
     target.history = [...target.history, { from: target.origin, text: target.text, reason: change.reason }];
     target.origin = change.origin;
-    if (change.text) target.text = change.text;
+    if (change.text && change.text !== target.text) {
+      target.text = change.text;
+      for (const link of links) if (link.statement_id === change.id) link.stale = true;
+    }
   }
-  const links = [...state.links];
   for (const link of turn.links ?? []) {
-    if (!links.some((l) => sameLink(l, link))) links.push(link);
+    const known = links.find((l) => sameLink(l, link));
+    if (known) delete known.stale;
+    else links.push(link);
   }
   return { statements, links };
 }
@@ -42,7 +47,7 @@ export function comparisons(state) {
   return state.links.map((link) => {
     const statement = state.statements.find((s) => s.id === link.statement_id);
     const lost = statement?.origin !== "checked" && statement?.history.length > 0;
-    return { ...link, status: statement && !lost ? "active" : "released" };
+    return { ...link, status: statement && !lost && !link.stale ? "active" : "released" };
   });
 }
 
