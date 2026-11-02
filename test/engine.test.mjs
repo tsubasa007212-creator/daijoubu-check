@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { applyTurn, comparisons, ledger, newState } from "../src/engine.mjs";
+import { applyTurn, comparisons, ledger, newState, releasedCards } from "../src/engine.mjs";
 import { checkTurn } from "../src/guard.mjs";
-import { createLimiter, isValidState } from "../src/limits.mjs";
+import { createLimiter, isValidState, trimState } from "../src/limits.mjs";
+import { isSealed, seal } from "../src/seal.mjs";
 
 const cards = JSON.parse(readFileSync("data/cards.json", "utf8"));
 
@@ -95,4 +96,42 @@ test("訂正で文も直り、元の文は履歴に残る", () => {
 test("店へ行くようすすめる返答を止める", () => {
   const turn = { reply: "お店で見てもらいましょう。", citations: [{ card_id: "lov-feel", scene_id: "feel" }] };
   assert.ok(checkTurn(turn, cards, { requireHumanCheck: false }).some((e) => e.startsWith("assertion")));
+});
+
+test("言い切りでない否定の文は止めない", () => {
+  const turn = { reply: "「大丈夫です」とは言えません。", citations: [{ card_id: "lov-feel", scene_id: "feel" }] };
+  assert.deepEqual(checkTurn(turn, cards, { requireHumanCheck: false }), []);
+});
+
+test("言い換えと文中の断定を止める", () => {
+  for (const reply of ["原因はベルトです。別の車の記録ではそうでした。", "走っても平気そうです。", "It\u2019s fine.", "You should take it to a shop."]) {
+    const turn = { reply, citations: [{ card_id: "lov-feel", scene_id: "feel" }] };
+    assert.ok(checkTurn(turn, cards, { requireHumanCheck: false }).includes("assertion in reply"), reply);
+  }
+});
+
+test("最初から聞いた話の比較は外れない", () => {
+  const state = applyTurn(newState(), {
+    added: [{ id: "s1", text: "知人が音がすると言った", origin: "heard" }],
+    links: [{ statement_id: "s1", card_id: "o49-speed", observation_id: "speed" }],
+  });
+  assert.equal(comparisons(state)[0].status, "active");
+  assert.deepEqual(releasedCards(state), []);
+});
+
+test("長い台帳は収めて、次の送信で弾かれない", () => {
+  const long = { id: "s1", text: "あ".repeat(500), origin: "checked", history: Array(9).fill({ from: "guess", text: "x", reason: "y" }) };
+  assert.equal(isValidState(trimState({ statements: [long], links: [] })), true);
+});
+
+test("署名のない台帳を受け取らない", () => {
+  const state = { statements: [], links: [] };
+  assert.equal(isSealed(state, seal(state)), true);
+  assert.equal(isSealed({ statements: [{}], links: [] }, seal(state)), false);
+  assert.equal(isSealed(state, "x"), false);
+});
+
+test("該当動画なしと引用は同時に出せない", () => {
+  const turn = { reply: "該当動画なし", no_evidence: true, citations: [{ card_id: "lov-feel", scene_id: "feel" }] };
+  assert.ok(checkTurn(turn, cards, { requireHumanCheck: false }).includes("no_evidence with citations"));
 });

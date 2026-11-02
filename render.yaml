@@ -11,6 +11,8 @@ services:
         value: 24.15.0
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: STATE_SECRET
+        generateValue: true
       - key: LIMIT_HOUR
         value: "20"
       - key: LIMIT_DAY

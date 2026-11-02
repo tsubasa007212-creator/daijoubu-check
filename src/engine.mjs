@@ -16,6 +16,7 @@ export function newState() {
 export function applyTurn(state, turn) {
   const statements = state.statements.map((s) => ({ ...s }));
   for (const added of turn.added ?? []) {
+    if (statements.some((s) => s.id === added.id)) throw new Error(`duplicate statement: ${added.id}`);
     statements.push({ id: added.id, text: added.text, origin: added.origin, history: [] });
   }
   for (const change of turn.changed ?? []) {
@@ -36,11 +37,12 @@ function sameLink(a, b) {
   return a.statement_id === b.statement_id && a.card_id === b.card_id && a.observation_id === b.observation_id;
 }
 
-// 見立ては、本人が確かめた発言に支えられている間だけ「比べられる」。
+// 訂正で本人の確認でなくなった発言の比較は外す。最初から聞いた話の比較は、聞いた話のまま残す。
 export function comparisons(state) {
   return state.links.map((link) => {
     const statement = state.statements.find((s) => s.id === link.statement_id);
-    return { ...link, status: statement?.origin === "checked" ? "active" : "released" };
+    const lost = statement?.origin !== "checked" && statement?.history.length > 0;
+    return { ...link, status: statement && !lost ? "active" : "released" };
   });
 }
 

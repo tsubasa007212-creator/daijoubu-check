@@ -21,6 +21,7 @@ export const MESSAGES = {
     original: "原文",
     repair: "自分で直す人へ：作業の場面",
     ownerWords: "大谷の言葉",
+    workScene: "",
     sheet: "お店に見せる1枚を作る",
     when: "最後の整備はいつですか",
     what: "何を整備しましたか",
@@ -58,6 +59,7 @@ export const MESSAGES = {
     original: "Original",
     repair: "If you fix it yourself: work scenes",
     ownerWords: "Otani's words",
+    workScene: "Work scene (Japanese)",
     sheet: "Make a note for the shop",
     when: "When was the last service?",
     what: "What was serviced?",
@@ -78,7 +80,7 @@ export const MESSAGES = {
 
 export function pickLanguage(search, navigatorLanguage) {
   const asked = new URLSearchParams(search).get("lang");
-  if (asked && MESSAGES[asked]) return asked;
+  if (asked && Object.hasOwn(MESSAGES, asked)) return asked;
   const base = (navigatorLanguage ?? "ja").slice(0, 2);
-  return MESSAGES[base] ? base : "en";
+  return Object.hasOwn(MESSAGES, base) ? base : "en";
 }

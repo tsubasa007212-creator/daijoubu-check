@@ -10,9 +10,12 @@ let t = MESSAGES[lang];
 let cards = [];
 let session = emptySession();
 let previous = {};
+let sending = false;
+let turnId = 0;
+let troubleEdited = false;
 
 function emptySession() {
-  return { state: { statements: [], links: [] }, comparisons: [], log: [] };
+  return { state: { statements: [], links: [] }, signature: null, comparisons: [], log: [], lastReply: "" };
 }
 
 // 保存できない環境でも相談は続ける。
@@ -113,7 +116,7 @@ function renderLedger() {
     root.append(group);
   }
   previous = Object.fromEntries(statements.map((s) => [s.id, s.origin]));
-  $("f-trouble").value = statements.filter((s) => s.origin === "checked").map((s) => s.text).join("\n");
+  if (!troubleEdited) $("f-trouble").value = statements.filter((s) => s.origin === "checked").map((s) => s.text).join("\n");
 }
 
 // 今も比べている記録の作業場面だけを出す。動画の中の注意はそのまま添え、足さない。
@@ -122,7 +125,7 @@ function renderRepair() {
   const list = $("repair-list");
   list.replaceChildren();
   for (const card of active.map(cardOf).filter((c) => c?.repair)) {
-    list.append(sceneButton(card.video_id, card.repair.t, card.repair.line, recordName(card)));
+    list.append(sceneButton(card.video_id, card.repair.t, t.workScene || card.repair.line, recordName(card)));
     if (card.repair.warning) {
       const warning = document.createElement("p");
       warning.className = "hint";
@@ -165,6 +168,10 @@ function renderAll(showUnsure = false) {
 }
 
 async function send(message) {
+  if (sending) return;
+  sending = true;
+  turnId += 1;
+  const current = turnId;
   const button = $("send");
   button.disabled = true;
   button.textContent = t.sending;
@@ -176,11 +183,20 @@ async function send(message) {
     const response = await fetch("/api/turn", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ message, state: session.state, lang }),
+      body: JSON.stringify({
+        message,
+        state: session.signature ? session.state : undefined,
+        signature: session.signature,
+        previousReply: session.lastReply,
+        lang,
+      }),
     });
     if (!response.ok) throw new Error(response.status === 429 ? "busy" : "failed");
     const data = await response.json();
+    if (current !== turnId) return;
     session.state = data.state;
+    session.signature = data.signature;
+    session.lastReply = data.turn.reply;
     session.comparisons = data.comparisons;
     session.log.push({ kind: "me", text: data.turn.reply });
     data.turn.citations.forEach((cite) => session.log.push({ kind: "cite", ...cite }));
@@ -190,6 +206,7 @@ async function send(message) {
     renderRepair();
     renderChips(Boolean(data.turn.ask));
   } catch (error) {
+    if (current !== turnId) return;
     session.log.pop();
     $("input").value = message;
     renderLog();
@@ -197,6 +214,7 @@ async function send(message) {
     renderLog();
     session.log.pop();
   } finally {
+    sending = false;
     button.disabled = false;
     button.textContent = t.send;
   }
@@ -212,7 +230,14 @@ $("input").addEventListener("keydown", (event) => {
   if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) $("form").requestSubmit();
 });
 
+$("f-trouble").addEventListener("input", () => { troubleEdited = true; });
+
 $("restart").addEventListener("click", () => {
+  turnId += 1;
+  sending = false;
+  $("send").disabled = false;
+  $("send").textContent = t.send;
+  troubleEdited = false;
   session = emptySession();
   previous = {};
   $("player").replaceChildren();

@@ -5,7 +5,8 @@ export const PORT = Number(process.env.PORT ?? 8787);
 export const ALLOW_UNCHECKED = process.env.ALLOW_UNCHECKED === "1";
 export const LIMIT_HOUR = Number(process.env.LIMIT_HOUR ?? 20);
 export const LIMIT_DAY = Number(process.env.LIMIT_DAY ?? 300);
-export const MAX_BODY = 20000;
+export const MAX_BODY = 64000;
+export const MAX_TOKENS = 3000;
 export const MAX_MESSAGE = 1000;
 
 export const STOP_REPLY = {
