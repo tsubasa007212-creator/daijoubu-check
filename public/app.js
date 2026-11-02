@@ -112,6 +112,10 @@ $("form").addEventListener("submit", async (event) => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ message, state }),
     });
+    if (response.status === 429) {
+      addText("me", "今は混み合っています。少し時間をおいて送ってください。");
+      return;
+    }
     if (!response.ok) throw new Error("failed");
     const data = await response.json();
     state = data.state;
@@ -135,8 +139,16 @@ $("copy").addEventListener("click", async () => {
     `買った所：${$("f-where").value}`,
     `不調の様子：${$("f-trouble").value}`,
   ].join("\n");
-  await navigator.clipboard.writeText(text);
-  $("copy").textContent = "写しました";
+  const output = $("sheet-text");
+  output.value = text;
+  output.hidden = false;
+  output.select();
+  try {
+    await navigator.clipboard.writeText(text);
+    $("copy").textContent = "写しました";
+  } catch {
+    $("copy").textContent = "できました";
+  }
 });
 
 const data = await (await fetch("/api/cards")).json();

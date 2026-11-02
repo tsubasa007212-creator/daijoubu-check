@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { applyTurn, comparisons, ledger, newState } from "../src/engine.mjs";
 import { checkTurn } from "../src/guard.mjs";
+import { createLimiter, isValidState } from "../src/limits.mjs";
 
 const cards = JSON.parse(readFileSync("data/cards.json", "utf8"));
 
@@ -53,4 +54,28 @@ test("比較が外れたカードは引かない", () => {
   const turn = { reply: "記録があります。", citations: [{ card_id: "lov-feel", scene_id: "feel" }] };
   const errors = checkTurn(turn, cards, { requireHumanCheck: false, released: ["lov-feel"] });
   assert.ok(errors.some((e) => e.startsWith("card released")));
+});
+
+test("1時間の回数を超えると止まり、時間が過ぎると戻る", () => {
+  let t = 0;
+  const allowed = createLimiter({ perHour: 2, perDay: 10, now: () => t });
+  assert.equal(allowed("a"), true);
+  assert.equal(allowed("a"), true);
+  assert.equal(allowed("a"), false);
+  assert.equal(allowed("b"), true);
+  t = 60 * 60 * 1000;
+  assert.equal(allowed("a"), true);
+});
+
+test("1日の上限は全員の合計で止まる", () => {
+  const allowed = createLimiter({ perHour: 10, perDay: 2, now: () => 0 });
+  allowed("a");
+  allowed("b");
+  assert.equal(allowed("c"), false);
+});
+
+test("形の崩れた台帳を受け取らない", () => {
+  assert.equal(isValidState({ statements: [], links: [] }), true);
+  assert.equal(isValidState({ statements: [{ id: "s1", text: "x", origin: "owner", history: [] }], links: [] }), false);
+  assert.equal(isValidState({ statements: "x", links: [] }), false);
 });

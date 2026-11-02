@@ -28,4 +28,4 @@ details { margin-top: 8px; font-size: 14px; }
 summary { cursor: pointer; font-weight: 600; }
 label { display: block; margin-top: 8px; }
 .hint { color: var(--sub); font-size: 12px; }
-@media (max-width: 800px) { main { grid-template-columns: minmax(0, 1fr); } .ledger { position: static; max-height: none; order: -1; } }
+@media (max-width: 800px) { main { grid-template-columns: minmax(0, 1fr); } .ledger { position: static; max-height: none; } }

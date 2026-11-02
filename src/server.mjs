@@ -5,6 +5,7 @@ import { extname, join } from "node:path";
 import { applyTurn, comparisons, newState, releasedCards } from "./engine.mjs";
 import { checkTurn } from "./guard.mjs";
 import { createClient, readTurn } from "./claude.mjs";
+import { createLimiter, isValidState } from "./limits.mjs";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const ALLOW_UNCHECKED = process.env.ALLOW_UNCHECKED === "1";
@@ -13,6 +14,7 @@ const cards = ALLOW_UNCHECKED ? allCards : allCards.filter((c) => c.human_check 
 const client = createClient();
 const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8" };
 const MAX_BODY = 20000;
+const allowed = createLimiter({ perHour: Number(process.env.LIMIT_HOUR ?? 20), perDay: Number(process.env.LIMIT_DAY ?? 300) });
 const STOP_REPLY = "該当動画なし。この話に合う記録を、今は確かめられません。";
 
 function logQuestion(message) {
@@ -39,7 +41,8 @@ async function answer(state, message) {
 async function handleTurn(body) {
   const { message, state } = JSON.parse(body);
   if (typeof message !== "string" || !message.trim() || message.length > 1000) throw new Error("bad message");
-  const current = state?.statements && state?.links ? state : newState();
+  if (state && !isValidState(state)) throw new Error("bad state");
+  const current = state ?? newState();
   const result = await answer(current, message.trim());
   if (result.turn.no_evidence) logQuestion(message.trim());
   return { state: result.state, turn: result.turn, comparisons: comparisons(result.state) };
@@ -52,6 +55,8 @@ function send(res, status, body, type = "application/json; charset=utf-8") {
 
 createServer((req, res) => {
   if (req.method === "POST" && req.url === "/api/turn") {
+    const ip = String(req.headers["x-forwarded-for"] ?? req.socket.remoteAddress).split(",")[0].trim();
+    if (!allowed(ip)) return send(res, 429, JSON.stringify({ error: "limit" }));
     let body = "";
     req.on("data", (chunk) => {
       body += chunk;
