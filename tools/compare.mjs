@@ -1,7 +1,7 @@
 // 本作と普通のRAGを1回ずつ実行し、方式を隠した採点表を作る。再実行して良い方を選ばない。
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { applyTurn, ledger, comparisons, newState } from "../src/engine.mjs";
+import { applyTurn, ledger, newState } from "../src/engine.mjs";
 import { createClient, readTurn } from "../src/claude.mjs";
 import { ragTurn } from "../src/rag.mjs";
 
@@ -23,7 +23,7 @@ async function runOurs(c) {
   }
   const l = ledger(state);
   return {
-    can_say: [...l.checked.map((s) => s.text), ...comparisons(state).filter((x) => x.status === "active").map((x) => `${x.card_id}と比べている`)],
+    can_say: l.checked.map((s) => s.text),
     cannot_say: [...l.heard, ...l.guess, ...l.unknown].map((s) => s.text),
     reply: last.reply,
     citations: last.citations,
