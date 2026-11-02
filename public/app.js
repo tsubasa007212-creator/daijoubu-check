@@ -90,6 +90,7 @@ function renderNext() {
   $("next").hidden = !step || lang !== "ja";
   if (!step) return;
   $("next-how").textContent = step.how;
+  $("next-source").textContent = step.source === "owner" ? t.sourceOwner : t.sourceVideo;
   $("next-needs").textContent = `${t.needs}：${step.needs}`;
   $("next-limit").textContent = `${t.cannotTell}：${step.cannot_tell}`;
 }

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "daijoubu-records": {
+      "command": "node",
+      "args": ["tools/mcp/records.mjs"]
+    }
+  }
+}
