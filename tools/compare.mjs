@@ -52,4 +52,4 @@ for (const c of cases) {
   console.log("done", c.id);
 }
 writeFileSync(OUT, JSON.stringify(key, null, 2));
-writeFileSync("private/eval_sheet.md", sheet.join("\n"));
+writeFileSync(OUT.replace(/\.json$/, "") + "_sheet.md", sheet.join("\n"));
