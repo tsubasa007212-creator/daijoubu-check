@@ -5,7 +5,7 @@ const ASSERTIONS = [
   /原因は.{0,30}(です|だ)[。\s]*$/m, /交換してください/, /修理してください/,
 ];
 
-export function checkTurn(turn, cards, { requireHumanCheck = true } = {}) {
+export function checkTurn(turn, cards, { requireHumanCheck = true, released = [] } = {}) {
   const errors = [];
   const usable = (id) => {
     const card = cards.find((c) => c.id === id);
@@ -21,6 +21,7 @@ export function checkTurn(turn, cards, { requireHumanCheck = true } = {}) {
     }
   }
   for (const cite of turn.citations ?? []) {
+    if (released.includes(cite.card_id)) errors.push(`card released: ${cite.card_id}`);
     const card = usable(cite.card_id);
     if (card && !card.scenes.some((s) => s.id === cite.scene_id)) {
       errors.push(`scene not found: ${cite.card_id}/${cite.scene_id}`);

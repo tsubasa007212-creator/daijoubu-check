@@ -43,6 +43,13 @@ export function comparisons(state) {
   });
 }
 
+// 外れた比較しか残っていないカード。同じカードで別の比較が生きていれば含めない。
+export function releasedCards(state) {
+  const rows = comparisons(state);
+  const active = new Set(rows.filter((c) => c.status === "active").map((c) => c.card_id));
+  return [...new Set(rows.filter((c) => c.status === "released").map((c) => c.card_id))].filter((id) => !active.has(id));
+}
+
 export function ledger(state) {
   return Object.fromEntries(ORIGINS.map((o) => [o, state.statements.filter((s) => s.origin === o)]));
 }

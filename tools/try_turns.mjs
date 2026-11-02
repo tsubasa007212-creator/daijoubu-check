@@ -1,6 +1,6 @@
 // 画面なしで会話を試す。開発用なので、本人確認前のカードも通す。
 import { readFileSync } from "node:fs";
-import { applyTurn, comparisons, ledger, newState } from "../src/engine.mjs";
+import { applyTurn, comparisons, ledger, newState, releasedCards } from "../src/engine.mjs";
 import { checkTurn } from "../src/guard.mjs";
 import { createClient, readTurn } from "../src/claude.mjs";
 
@@ -17,7 +17,7 @@ for (const message of messages) {
   console.log("\n相談者:", message);
   console.log("返答:", turn.reply);
   console.log("引用:", JSON.stringify(turn.citations), "質問:", JSON.stringify(turn.ask), "根拠なし:", turn.no_evidence);
-  console.log("検査:", JSON.stringify(checkTurn(turn, cards, { requireHumanCheck: false })));
+  console.log("検査:", JSON.stringify(checkTurn(turn, cards, { requireHumanCheck: false, released: releasedCards(state) })));
   for (const [origin, rows] of Object.entries(ledger(state))) console.log(" ", origin, rows.map((r) => `${r.id}:${r.text}`).join(" / "));
   console.log("比較:", comparisons(state).map((c) => `${c.statement_id}-${c.card_id}/${c.observation_id}:${c.status}`).join(" "));
 }

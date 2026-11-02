@@ -48,3 +48,9 @@ test("大丈夫と言い切る返答を止める", () => {
 test("該当動画なしは根拠なしで通す", () => {
   assert.deepEqual(checkTurn({ reply: "該当動画なし", no_evidence: true }, cards), []);
 });
+
+test("比較が外れたカードは引かない", () => {
+  const turn = { reply: "記録があります。", citations: [{ card_id: "lov-feel", scene_id: "feel" }] };
+  const errors = checkTurn(turn, cards, { requireHumanCheck: false, released: ["lov-feel"] });
+  assert.ok(errors.some((e) => e.startsWith("card released")));
+});
