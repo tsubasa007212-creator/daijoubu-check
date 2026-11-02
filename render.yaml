@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: daijoubu-check
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: node src/server.mjs
+    healthCheckPath: /api/cards
+    envVars:
+      - key: NODE_VERSION
+        value: 24.15.0
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: LIMIT_HOUR
+        value: "20"
+      - key: LIMIT_DAY
+        value: "300"
