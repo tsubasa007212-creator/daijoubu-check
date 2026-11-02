@@ -41,6 +41,32 @@ function addScene(cite) {
   $("log").append(button);
 }
 
+// 今も比べている記録の作業場面だけを出す。動画の中の注意はそのまま添え、足さない。
+function renderRepair() {
+  const active = [...new Set(comparisons.filter((c) => c.status === "active").map((c) => c.card_id))];
+  const list = $("repair-list");
+  list.replaceChildren();
+  for (const card of active.map(cardOf).filter((c) => c?.repair)) {
+    const button = document.createElement("button");
+    button.className = "scene";
+    button.type = "button";
+    const time = document.createElement("b");
+    time.textContent = card.repair.t;
+    const note = document.createElement("small");
+    note.textContent = `${card.title}（別の車の記録）`;
+    button.append(time, card.repair.line, note);
+    button.onclick = () => play(card.video_id, card.repair.t);
+    list.append(button);
+    if (card.repair.warning) {
+      const warning = document.createElement("p");
+      warning.className = "hint";
+      warning.textContent = `大谷の言葉（${card.repair.warning.t}）：${card.repair.warning.line}`;
+      list.append(warning);
+    }
+  }
+  $("repair").hidden = list.childElementCount === 0;
+}
+
 function renderLedger() {
   const root = $("ledger");
   root.replaceChildren();
@@ -93,6 +119,7 @@ $("form").addEventListener("submit", async (event) => {
     addText("me", data.turn.reply);
     data.turn.citations.forEach(addScene);
     renderLedger();
+    renderRepair();
   } catch {
     addText("me", "うまく受け取れませんでした。もう一度送ってください。");
   } finally {
