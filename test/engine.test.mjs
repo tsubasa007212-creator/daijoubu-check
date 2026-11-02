@@ -36,7 +36,7 @@ test("カードに実在する場面だけ引ける", () => {
 });
 
 test("本人確認前のカードは出さない", () => {
-  const turn = { reply: "記録があります。", citations: [{ card_id: "lov-feel", scene_id: "feel" }] };
+  const turn = { reply: "記録があります。", citations: [{ card_id: "o49-speed", scene_id: "noise" }] };
   assert.ok(checkTurn(turn, cards).some((e) => e.startsWith("card not approved")));
 });
 
