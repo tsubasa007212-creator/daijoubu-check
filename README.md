@@ -8,3 +8,24 @@ Built with Claude: Japan 2026（テーマ2「本来、誰にでも届くべき�
 
 - コードと成果物は、2026-11-02 12:30（JST）のビルド開始後に作成しています。
 - 元データは、株式会社WINGオオタニの大谷翼が開始前に公開した自身のYouTube動画と、その字幕です。使う区間の抜粋だけをこのリポジトリに置きます。
+
+## 動かし方
+
+Node.js 24 以降を使います。
+
+```bash
+npm install
+node --env-file=private/.env src/server.mjs
+```
+
+`private/.env` に `ANTHROPIC_API_KEY` を書きます。`private/` は公開しません。本人確認前のカードを開発で見る時だけ `ALLOW_UNCHECKED=1` を足します。
+
+## 作りの要点
+
+- `src/claude.mjs`：相談文を読み、確かめたこと・聞いた話・推測に分け、記録カードと結びつけます。
+- `src/engine.mjs`：訂正で支えを失った比較を、プログラムで外します。判断の連動はClaudeに任せません。
+- `src/guard.mjs`：実在しない場面、本人確認前のカード、言い切りの返答を出す前に止めます。
+- `data/cards.json`：大谷の動画から抜き出した場面と、本人の確認内容です。
+- `tools/compare.mjs`：普通のRAGと、方式を隠して比べます。
+
+答えの根拠は大谷の動画だけです。メーカーの資料は入れていません。

@@ -1,0 +1,31 @@
+:root { --ink:#1d1b18; --sub:#6b645a; --line:#d8d2c7; --paper:#faf8f3; --accent:#b4371f; --moved:#fbeee0; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.7 "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif; }
+header { padding: 20px 16px 8px; max-width: 1040px; margin: auto; }
+h1 { font-size: 22px; margin: 0; letter-spacing: .04em; }
+header p { margin: 2px 0 0; color: var(--sub); }
+.notice { max-width: 1008px; margin: 8px auto 0; padding: 8px 12px; border-left: 3px solid var(--accent); font-size: 13px; color: var(--sub); }
+.notice span { display: block; color: var(--accent); }
+main { max-width: 1040px; margin: auto; padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; }
+#log p { margin: 0 0 12px; white-space: pre-wrap; }
+#log .you { padding: 8px 12px; background: #efeadf; border-radius: 4px; }
+.scene { display: block; width: 100%; text-align: left; margin: 0 0 12px; padding: 8px 12px; background: none; border: 1px solid var(--line); border-radius: 4px; font: inherit; color: inherit; cursor: pointer; }
+.scene b { color: var(--accent); margin-right: 8px; font-variant-numeric: tabular-nums; }
+.scene small { display: block; color: var(--sub); }
+form textarea, details input, details select, details textarea { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 4px; font: inherit; background: #fff; }
+button[type=submit], #copy { margin-top: 8px; padding: 10px 24px; border: 0; border-radius: 4px; background: var(--ink); color: #fff; font: inherit; cursor: pointer; }
+button:disabled { opacity: .5; }
+.ledger { position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); overflow-y: auto; }
+.ledger h2 { font-size: 15px; margin: 0 0 8px; }
+.group { margin-bottom: 12px; }
+.group h3 { font-size: 12px; margin: 0; color: var(--sub); font-weight: 600; }
+.row { padding: 4px 8px; margin: 2px 0; border-bottom: 1px solid var(--line); font-size: 14px; transition: background .8s; }
+.row.moved { background: var(--moved); }
+.row small { display: block; color: var(--accent); font-size: 12px; }
+.row small.off { color: var(--sub); text-decoration: line-through; }
+#player iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; margin-bottom: 12px; }
+details { margin-top: 8px; font-size: 14px; }
+summary { cursor: pointer; font-weight: 600; }
+label { display: block; margin-top: 8px; }
+.hint { color: var(--sub); font-size: 12px; }
+@media (max-width: 800px) { main { grid-template-columns: minmax(0, 1fr); } .ledger { position: static; max-height: none; order: -1; } }

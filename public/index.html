@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大丈夫チェック</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>大丈夫チェック</h1>
+  <p>バイクの気になることを、そのままの言葉で書いてください。</p>
+</header>
+<p class="notice">無料の試作です。答えは整備士・大谷の動画だけを元にしています。動画は別の車の記録で、あなたのバイクの診断ではありません。<span id="draft" hidden>開発中：本人確認前の記録も出ています。</span></p>
+<main>
+  <section class="talk" aria-label="相談">
+    <div id="log" aria-live="polite"></div>
+    <form id="form">
+      <textarea id="input" rows="3" placeholder="例：40キロくらいから音がする。大丈夫だよね？"></textarea>
+      <button type="submit">送る</button>
+    </form>
+  </section>
+  <aside class="ledger" aria-label="台帳">
+    <h2>今わかっていること</h2>
+    <div id="ledger"></div>
+    <div id="player"></div>
+    <details id="sheet">
+      <summary>お店に見せる1枚を作る</summary>
+      <label>最後の整備はいつですか<input id="f-when"></label>
+      <label>何を整備しましたか<input id="f-what"></label>
+      <label>どこで買いましたか
+        <select id="f-where"><option>バイク屋の整備済み</option><option>バイク屋の未整備</option><option>個人売買</option></select>
+      </label>
+      <label>不調の様子<textarea id="f-trouble" rows="3"></textarea></label>
+      <button type="button" id="copy">写す</button>
+      <p class="hint">原因は書きません。確かめたことだけをお店に渡します。</p>
+    </details>
+  </aside>
+</main>
+<script src="app.js" type="module"></script>
+</body>
+</html>
