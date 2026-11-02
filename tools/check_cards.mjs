@@ -16,6 +16,21 @@ for (const card of cards) {
     if (!transcript.includes(`${scene.t} `)) errors.push(`${card.id}: no line at ${scene.t}`);
   }
 }
+const flows = JSON.parse(readFileSync("data/flows.json", "utf8"));
+for (const flow of flows) {
+  const ids = new Set(flow.steps.map((s) => s.id));
+  for (const step of flow.steps) {
+    for (const target of [step.if_yes, step.if_no]) {
+      if (target === "stop" || ids.has(target)) continue;
+      if (target.startsWith("cards:") && cards.some((c) => c.id === target.slice(6))) continue;
+      errors.push(`${flow.id}/${step.id}: no target ${target}`);
+    }
+    const path = `private/transcripts/${step.video_id}.txt`;
+    if (step.source === "video" && existsSync(path) && !readFileSync(path, "utf8").includes(`${step.t} `)) {
+      errors.push(`${flow.id}/${step.id}: no line at ${step.t}`);
+    }
+  }
+}
 if (errors.length > 0) {
   console.error(errors.join("\n"));
   process.exit(1);

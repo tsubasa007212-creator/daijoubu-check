@@ -7,6 +7,7 @@ import { createLimiter, isValidState, trimState } from "../src/limits.mjs";
 import { isSealed, seal } from "../src/seal.mjs";
 
 const cards = JSON.parse(readFileSync("data/cards.json", "utf8"));
+const flows = JSON.parse(readFileSync("data/flows.json", "utf8"));
 
 test("回したのが友達と分かると、頼っていた比較だけ外れる", () => {
   let state = applyTurn(newState(), {
@@ -134,4 +135,15 @@ test("署名のない台帳を受け取らない", () => {
 test("該当動画なしと引用は同時に出せない", () => {
   const turn = { reply: "該当動画なし", no_evidence: true, citations: [{ card_id: "lov-feel", scene_id: "feel" }] };
   assert.ok(checkTurn(turn, cards, { requireHumanCheck: false }).includes("no_evidence with citations"));
+});
+
+test("本人確認前の流れは出さない", () => {
+  const turn = { reply: "確かめましょう。", step: { flow_id: "start", step_id: "s1" } };
+  assert.ok(checkTurn(turn, cards, { flows }).some((e) => e.startsWith("flow not approved")));
+  assert.deepEqual(checkTurn(turn, cards, { flows, requireHumanCheck: false }), []);
+});
+
+test("流れにない確認は出さない", () => {
+  const turn = { reply: "確かめましょう。", step: { flow_id: "start", step_id: "none" } };
+  assert.ok(checkTurn(turn, cards, { flows, requireHumanCheck: false }).some((e) => e.startsWith("step not found")));
 });

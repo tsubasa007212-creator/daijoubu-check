@@ -7,7 +7,7 @@ export function createClient() {
   return new Anthropic({ maxRetries: 1, timeout: 60000 });
 }
 
-export async function readTurn(client, { cards, state, message, previousReply = "", hint = null }) {
+export async function readTurn(client, { cards, flows = [], state, message, previousReply = "", hint = null }) {
   const response = await client.beta.messages.create({
     model: MODEL,
     max_tokens: MAX_TOKENS,
@@ -16,7 +16,7 @@ export async function readTurn(client, { cards, state, message, previousReply = 
     output_config: { effort: EFFORT, format: { type: "json_schema", schema: TURN_SCHEMA } },
     system: [
       { type: "text", text: SYSTEM },
-      { type: "text", text: `## 記録カード\n${JSON.stringify(cards)}`, cache_control: { type: "ephemeral" } },
+      { type: "text", text: `## 記録カード\n${JSON.stringify(cards)}\n\n## 点検の流れ\n${JSON.stringify(flows)}`, cache_control: { type: "ephemeral" } },
     ],
     messages: [{ role: "user", content: JSON.stringify({ ledger: state, previous_reply: previousReply, fix_this: hint, message }) }],
   });

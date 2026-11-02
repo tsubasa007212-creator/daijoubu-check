@@ -18,7 +18,7 @@ function assertions(reply) {
   return sentences.filter((s) => !NEGATED.test(s)).flatMap((s) => ASSERTIONS.filter((p) => p.test(s)));
 }
 
-export function checkTurn(turn, cards, { requireHumanCheck = true, released = [], statementIds = null } = {}) {
+export function checkTurn(turn, cards, { requireHumanCheck = true, released = [], statementIds = null, flows = [] } = {}) {
   const errors = [];
   const usable = (id) => {
     const card = cards.find((c) => c.id === id);
@@ -48,9 +48,14 @@ export function checkTurn(turn, cards, { requireHumanCheck = true, released = []
       errors.push(`question not on card: ${turn.ask.card_id}/${turn.ask.observation_id}`);
     }
   }
+  if (turn.step) {
+    const flow = flows.find((f) => f.id === turn.step.flow_id);
+    if (!flow || !flow.steps.some((s) => s.id === turn.step.step_id)) errors.push(`step not found: ${turn.step.flow_id}/${turn.step.step_id}`);
+    else if (requireHumanCheck && flow.human_check !== "approved") errors.push(`flow not approved: ${flow.id}`);
+  }
   if (turn.no_evidence && (turn.citations ?? []).length > 0) errors.push("no_evidence with citations");
   if (assertions(turn.reply ?? "").length > 0) errors.push("assertion in reply");
   if ((turn.reply ?? "").length > MAX_REPLY) errors.push("reply too long");
-  if ((turn.citations ?? []).length === 0 && !turn.no_evidence && !turn.ask) errors.push("reply has no evidence");
+  if ((turn.citations ?? []).length === 0 && !turn.no_evidence && !turn.ask && !turn.step) errors.push("reply has no evidence");
   return errors;
 }

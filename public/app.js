@@ -8,6 +8,7 @@ const $ = (id) => document.getElementById(id);
 let lang = pickLanguage(location.search, navigator.language);
 let t = MESSAGES[lang];
 let cards = [];
+let flows = [];
 let session = emptySession();
 let previous = {};
 let sending = false;
@@ -80,6 +81,17 @@ function renderLog() {
   session.log.forEach(renderEntry);
   $("examples").hidden = session.log.length > 0;
   $("log").lastElementChild?.scrollIntoView({ block: "nearest" });
+}
+
+// 流れの本文は日本語だけなので、他の言語では返答の質問に任せる。
+function renderNext() {
+  const flow = flows.find((f) => f.id === session.step?.flow_id);
+  const step = flow?.steps.find((s) => s.id === session.step?.step_id);
+  $("next").hidden = !step || lang !== "ja";
+  if (!step) return;
+  $("next-how").textContent = step.how;
+  $("next-needs").textContent = `${t.needs}：${step.needs}`;
+  $("next-limit").textContent = `${t.cannotTell}：${step.cannot_tell}`;
 }
 
 function renderLedger() {
@@ -164,6 +176,7 @@ function renderAll(showUnsure = false) {
   renderLog();
   renderLedger();
   renderRepair();
+  renderNext();
   renderChips(showUnsure);
 }
 
@@ -197,6 +210,7 @@ async function send(message) {
     session.state = data.state;
     session.signature = data.signature;
     session.lastReply = data.turn.reply;
+    session.step = data.turn.step ?? null;
     session.comparisons = data.comparisons;
     session.log.push({ kind: "me", text: data.turn.reply });
     data.turn.citations.forEach((cite) => session.log.push({ kind: "cite", ...cite }));
@@ -204,7 +218,8 @@ async function send(message) {
     renderLog();
     renderLedger();
     renderRepair();
-    renderChips(Boolean(data.turn.ask));
+    renderNext();
+    renderChips(Boolean(data.turn.ask || data.turn.step));
   } catch (error) {
     if (current !== turnId) return;
     session.log.pop();
@@ -268,6 +283,7 @@ $("copy").addEventListener("click", async () => {
 
 const data = await (await fetch("/api/cards")).json();
 cards = data.cards;
+flows = data.flows;
 $("draft").hidden = !data.draft;
 session = load();
 renderAll();

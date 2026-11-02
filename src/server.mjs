@@ -11,6 +11,8 @@ import { isSealed, seal } from "./seal.mjs";
 
 const allCards = JSON.parse(readFileSync("data/cards.json", "utf8"));
 const cards = ALLOW_UNCHECKED ? allCards : allCards.filter((c) => c.human_check === "approved");
+const allFlows = JSON.parse(readFileSync("data/flows.json", "utf8"));
+const flows = ALLOW_UNCHECKED ? allFlows : allFlows.filter((f) => f.human_check === "approved");
 const client = createClient();
 const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8" };
 const allowed = createLimiter({ perHour: LIMIT_HOUR, perDay: LIMIT_DAY });
@@ -31,13 +33,14 @@ async function answer(state, message, lang, previousReply) {
   let kept = state;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      const { turn } = await readTurn(client, { cards, state, message, previousReply, hint });
+      const { turn } = await readTurn(client, { cards, flows, state, message, previousReply, hint });
       const next = trimState(applyTurn(state, turn));
       kept = trimState(applyTurn(state, { ...turn, links: [] }));
       const errors = checkTurn(turn, cards, {
         requireHumanCheck: !ALLOW_UNCHECKED,
         released: releasedCards(next),
         statementIds: next.statements.map((s) => s.id),
+        flows,
       });
       if (errors.length === 0) return turn.no_evidence ? stop(next) : { state: next, turn };
       console.warn("guard", errors);
@@ -109,7 +112,7 @@ function handleFile(req, res) {
 createServer((req, res) => {
   try {
     if (req.method === "POST" && req.url === "/api/turn") return handleTurn(req, res);
-    if (req.url === "/api/cards") return send(res, 200, JSON.stringify({ cards, draft: ALLOW_UNCHECKED }));
+    if (req.url === "/api/cards") return send(res, 200, JSON.stringify({ cards, flows, draft: ALLOW_UNCHECKED }));
     handleFile(req, res);
   } catch {
     send(res, 404, "not found", "text/plain");
