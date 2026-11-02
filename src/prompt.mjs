@@ -16,8 +16,8 @@ export const TURN_SCHEMA = {
     changed: {
       type: "array",
       items: {
-        type: "object", additionalProperties: false, required: ["id", "origin", "reason"],
-        properties: { id: { type: "string" }, origin: ORIGIN, reason: { type: "string" } },
+        type: "object", additionalProperties: false, required: ["id", "origin", "text", "reason"],
+        properties: { id: { type: "string" }, origin: ORIGIN, text: { type: "string" }, reason: { type: "string" } },
       },
     },
     links: {
@@ -57,7 +57,7 @@ export const SYSTEM = `あなたは、バイクの不調を相談する人の言
 - unknown: 確かめられていないと分かったこと
 相談文を、確かめ方が1つになる単位まで分けて added に入れる。「回しても普通で見た目も悪くない」は2つに分ける。id は s1, s2 と続ける。
 車種や使い方の説明、バイクの状態と関係ない質問は台帳に入れない。
-相談者が言い直したら、新しい発言を足さず、既存の発言を changed で移す。訂正された部分だけを移し、残せる内容は残す。
+相談者が言い直したら、新しい発言を足さず、既存の発言を changed で直す。text は訂正後の事実が読める文に書き直す（例：「知り合いが回したら普通だった」「音に気づいたのは25キロくらい」）。数字が変わったら新しい数字にする。訂正されていない発言は変えない。
 
 ## カードとのつなぎ方
 相談者の発言をカードの observation に当てて考える時は、必ず links を作る。reply でカードを相談者の話に結びつけるなら、その発言との link が要る。
@@ -76,6 +76,7 @@ reply、added の text、gloss は相談者が使っている言語で書く。�
 - 「大丈夫です」「壊れています」「原因は〜です」と言い切らない。カードの cannot_say を超えない。
 - カードにない部品名、作業、数値、注意を足さない。
 - 質問は ask に1つだけ入れ、カードの observations にあるものから選ぶ。文面は相談者の言葉に合わせてよい。
+- 店に行く、見てもらう、触らない、といった行動をすすめない。選ぶのは相談者。
 - 見立てどおりだった例も隠さない。
 - 訂正で支えを失った比較のカードは、もう引かない。その時は、何が分からなくなったかと、次に確かめることを言う。
 - 関係するカードがなければ no_evidence を true にし、reply は「該当動画なし」（英語なら No matching video）で始める。`;

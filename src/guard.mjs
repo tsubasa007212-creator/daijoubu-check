@@ -2,7 +2,7 @@
 
 const ASSERTIONS = [
   /大丈夫です/, /問題ありません/, /安全です/, /壊れています/,
-  /原因は.{0,30}(です|だ)[。\s]*$/m, /交換してください/, /修理してください/,
+  /原因は.{0,30}(です|だ)[。\s]*$/m, /交換してください/, /修理してください/, /見てもらって?ください/, /見てもらう(こと|のが|べき)/, /お店で見てもらい/,
   /\b(it|your bike|this) (is|'s) (fine|ok|okay|safe)\b/i, /\bno problem\b/i, /\bis broken\b/i,
   /\bthe cause is\b/i, /\b(please )?(replace|repair) (it|the)\b/i,
 ];

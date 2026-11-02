@@ -21,8 +21,9 @@ export function applyTurn(state, turn) {
   for (const change of turn.changed ?? []) {
     const target = statements.find((s) => s.id === change.id);
     if (!target) throw new Error(`unknown statement: ${change.id}`);
-    target.history = [...target.history, { from: target.origin, reason: change.reason }];
+    target.history = [...target.history, { from: target.origin, text: target.text, reason: change.reason }];
     target.origin = change.origin;
+    if (change.text) target.text = change.text;
   }
   const links = [...state.links];
   for (const link of turn.links ?? []) {

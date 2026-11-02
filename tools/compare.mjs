@@ -5,7 +5,7 @@ import { applyTurn, ledger, newState } from "../src/engine.mjs";
 import { createClient, readTurn } from "../src/claude.mjs";
 import { ragTurn } from "../src/rag.mjs";
 
-const OUT = "private/eval_key.json";
+const OUT = process.argv[3] ?? "private/eval_key.json";
 if (existsSync(OUT)) throw new Error("already ran: 各方式1回だけ");
 const cards = JSON.parse(readFileSync("data/cards.json", "utf8"));
 const cases = JSON.parse(readFileSync(process.argv[2] ?? "data/eval/cases_test.json", "utf8"));

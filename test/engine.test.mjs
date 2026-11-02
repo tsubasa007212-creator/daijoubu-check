@@ -84,3 +84,15 @@ test("英語の言い切りも止める", () => {
   const turn = { reply: "Your bike is fine.", citations: [{ card_id: "lov-feel", scene_id: "feel" }] };
   assert.ok(checkTurn(turn, cards, { requireHumanCheck: false }).some((e) => e.startsWith("assertion")));
 });
+
+test("訂正で文も直り、元の文は履歴に残る", () => {
+  let state = applyTurn(newState(), { added: [{ id: "s1", text: "40キロで音", origin: "checked" }] });
+  state = applyTurn(state, { changed: [{ id: "s1", origin: "checked", text: "25キロくらいで音", reason: "メモを見た" }] });
+  assert.equal(state.statements[0].text, "25キロくらいで音");
+  assert.equal(state.statements[0].history[0].text, "40キロで音");
+});
+
+test("店へ行くようすすめる返答を止める", () => {
+  const turn = { reply: "お店で見てもらいましょう。", citations: [{ card_id: "lov-feel", scene_id: "feel" }] };
+  assert.ok(checkTurn(turn, cards, { requireHumanCheck: false }).some((e) => e.startsWith("assertion")));
+});
