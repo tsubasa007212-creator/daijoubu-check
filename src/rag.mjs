@@ -1,5 +1,5 @@
 // 比較相手の普通のRAG。同じカード、同じ根拠の制約、同じ会話履歴を渡す。台帳の仕組みだけ持たない。
-const MODEL = "claude-opus-5-5";
+import { EFFORT, MODEL } from "./config.mjs";
 
 const SCHEMA = {
   type: "object",
@@ -31,7 +31,7 @@ export async function ragTurn(client, { cards, history, message }) {
   const response = await client.messages.create({
     model: MODEL,
     max_tokens: 16000,
-    output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
+    output_config: { effort: EFFORT, format: { type: "json_schema", schema: SCHEMA } },
     system: [
       { type: "text", text: SYSTEM },
       { type: "text", text: `## 記録カード\n${JSON.stringify(cards)}`, cache_control: { type: "ephemeral" } },

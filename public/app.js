@@ -1,91 +1,110 @@
-// 相談画面。台帳の分け方はサーバーの engine と同じ区分を使う。
-const LABELS = { checked: "自分で確かめたこと", heard: "聞いた話", guess: "推測", unknown: "まだ分からないこと" };
+// 相談画面。言葉は i18n.js に置き、台帳の判断はサーバーに任せる。
+import { MESSAGES, pickLanguage } from "./i18n.js";
+
+const ORIGINS = ["checked", "heard", "guess", "unknown"];
+const STORE_KEY = "daijoubu-check";
 const $ = (id) => document.getElementById(id);
-let state = { statements: [], links: [] };
-let comparisons = [];
+
+let lang = pickLanguage(location.search, navigator.language);
+let t = MESSAGES[lang];
 let cards = [];
+let session = emptySession();
 let previous = {};
 
-const seconds = (t) => t.split(":").reduce((sum, part) => sum * 60 + Number(part), 0);
-const cardOf = (id) => cards.find((c) => c.id === id);
-
-function addText(kind, text) {
-  const p = document.createElement("p");
-  p.className = kind;
-  p.textContent = text;
-  $("log").append(p);
-  p.scrollIntoView({ block: "nearest" });
+function emptySession() {
+  return { state: { statements: [], links: [] }, comparisons: [], log: [] };
 }
 
-function play(videoId, t) {
+// 保存できない環境でも相談は続ける。
+function save() {
+  try {
+    sessionStorage.setItem(STORE_KEY, JSON.stringify(session));
+  } catch { /* 保存なしで続ける */ }
+}
+
+function load() {
+  try {
+    return JSON.parse(sessionStorage.getItem(STORE_KEY)) ?? emptySession();
+  } catch {
+    return emptySession();
+  }
+}
+
+const seconds = (time) => time.split(":").reduce((sum, part) => sum * 60 + Number(part), 0);
+const cardOf = (id) => cards.find((c) => c.id === id);
+// カードの題名は日本語だけなので、他の言語では共通の呼び名にする。
+const recordName = (card) => (lang === "ja" ? card?.title ?? "" : t.otherBike);
+
+function play(videoId, time) {
   const frame = document.createElement("iframe");
-  frame.src = `https://www.youtube-nocookie.com/embed/${videoId}?start=${seconds(t)}&autoplay=1`;
+  frame.src = `https://www.youtube-nocookie.com/embed/${videoId}?start=${seconds(time)}&autoplay=1`;
   frame.allow = "autoplay; encrypted-media";
-  frame.title = "整備の動画";
+  frame.title = t.videoTitle;
   $("player").replaceChildren(frame);
 }
 
-function addScene(cite) {
-  const card = cardOf(cite.card_id);
-  const scene = card?.scenes.find((s) => s.id === cite.scene_id);
-  if (!scene) return;
+function sceneButton(videoId, time, line, note) {
   const button = document.createElement("button");
   button.className = "scene";
   button.type = "button";
-  const time = document.createElement("b");
-  time.textContent = scene.t;
-  const note = document.createElement("small");
-  note.textContent = `別の車の記録：${card.vehicle}`;
-  button.append(time, scene.line, note);
-  button.onclick = () => play(card.video_id, scene.t);
-  $("log").append(button);
+  const stamp = document.createElement("b");
+  stamp.textContent = time;
+  const small = document.createElement("small");
+  small.textContent = note;
+  button.append(stamp, line, small);
+  button.onclick = () => play(videoId, time);
+  return button;
 }
 
-// 今も比べている記録の作業場面だけを出す。動画の中の注意はそのまま添え、足さない。
-function renderRepair() {
-  const active = [...new Set(comparisons.filter((c) => c.status === "active").map((c) => c.card_id))];
-  const list = $("repair-list");
-  list.replaceChildren();
-  for (const card of active.map(cardOf).filter((c) => c?.repair)) {
-    const button = document.createElement("button");
-    button.className = "scene";
-    button.type = "button";
-    const time = document.createElement("b");
-    time.textContent = card.repair.t;
-    const note = document.createElement("small");
-    note.textContent = `${card.title}（別の車の記録）`;
-    button.append(time, card.repair.line, note);
-    button.onclick = () => play(card.video_id, card.repair.t);
-    list.append(button);
-    if (card.repair.warning) {
-      const warning = document.createElement("p");
-      warning.className = "hint";
-      warning.textContent = `大谷の言葉（${card.repair.warning.t}）：${card.repair.warning.line}`;
-      list.append(warning);
-    }
+function renderEntry(entry) {
+  if (entry.kind === "cite") {
+    const card = cardOf(entry.card_id);
+    const scene = card?.scenes.find((s) => s.id === entry.scene_id);
+    if (!scene) return;
+    const line = entry.gloss || scene.line;
+    const note = entry.gloss ? `${t.otherBike} / ${t.original}: ${scene.line}` : `${t.otherBike}：${card.vehicle}`;
+    $("log").append(sceneButton(card.video_id, scene.t, line, note));
+    return;
   }
-  $("repair").hidden = list.childElementCount === 0;
+  const p = document.createElement("p");
+  p.className = entry.kind;
+  p.textContent = entry.text;
+  $("log").append(p);
+}
+
+function renderLog() {
+  $("log").replaceChildren();
+  session.log.forEach(renderEntry);
+  $("examples").hidden = session.log.length > 0;
+  $("log").lastElementChild?.scrollIntoView({ block: "nearest" });
 }
 
 function renderLedger() {
   const root = $("ledger");
   root.replaceChildren();
-  for (const [origin, label] of Object.entries(LABELS)) {
-    const rows = state.statements.filter((s) => s.origin === origin);
+  const { statements } = session.state;
+  if (statements.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "hint";
+    empty.textContent = t.ledgerEmpty;
+    root.append(empty);
+  }
+  for (const origin of ORIGINS) {
+    const rows = statements.filter((s) => s.origin === origin);
     if (rows.length === 0) continue;
     const group = document.createElement("div");
     group.className = "group";
     const title = document.createElement("h3");
-    title.textContent = label;
+    title.textContent = t[origin];
     group.append(title);
     for (const statement of rows) {
       const row = document.createElement("div");
       row.className = "row";
       if (previous[statement.id] && previous[statement.id] !== origin) row.classList.add("moved");
       row.textContent = statement.text;
-      for (const link of comparisons.filter((c) => c.statement_id === statement.id)) {
+      for (const link of session.comparisons.filter((c) => c.statement_id === statement.id)) {
         const note = document.createElement("small");
-        note.textContent = `${cardOf(link.card_id)?.title ?? link.card_id} と比べている`;
+        note.textContent = recordName(cardOf(link.card_id)) + t.comparing;
         if (link.status === "released") note.className = "off";
         row.append(note);
       }
@@ -93,64 +112,137 @@ function renderLedger() {
     }
     root.append(group);
   }
-  previous = Object.fromEntries(state.statements.map((s) => [s.id, s.origin]));
-  $("f-trouble").value = state.statements.filter((s) => s.origin === "checked").map((s) => s.text).join("\n");
+  previous = Object.fromEntries(statements.map((s) => [s.id, s.origin]));
+  $("f-trouble").value = statements.filter((s) => s.origin === "checked").map((s) => s.text).join("\n");
 }
 
-$("form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const message = $("input").value.trim();
-  if (!message) return;
-  addText("you", message);
+// 今も比べている記録の作業場面だけを出す。動画の中の注意はそのまま添え、足さない。
+function renderRepair() {
+  const active = [...new Set(session.comparisons.filter((c) => c.status === "active").map((c) => c.card_id))];
+  const list = $("repair-list");
+  list.replaceChildren();
+  for (const card of active.map(cardOf).filter((c) => c?.repair)) {
+    list.append(sceneButton(card.video_id, card.repair.t, card.repair.line, recordName(card)));
+    if (card.repair.warning) {
+      const warning = document.createElement("p");
+      warning.className = "hint";
+      warning.textContent = `${t.ownerWords}（${card.repair.warning.t}）：${card.repair.warning.line}`;
+      list.append(warning);
+    }
+  }
+  $("repair").hidden = list.childElementCount === 0;
+}
+
+function chip(text, onClick) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "chip";
+  button.textContent = text;
+  button.onclick = onClick;
+  return button;
+}
+
+function renderChips(showUnsure) {
+  $("examples").replaceChildren(...t.examples.map((text) => chip(text, () => send(text))));
+  $("quick").replaceChildren(...(showUnsure ? [chip(t.unsure, () => send(t.unsure))] : []));
+}
+
+function renderTexts() {
+  document.documentElement.lang = lang;
+  document.title = t.title;
+  document.querySelectorAll("[data-t]").forEach((node) => { node.textContent = t[node.dataset.t]; });
+  $("input").placeholder = t.placeholder;
+  $("f-where").replaceChildren(...t.bought.map((text) => new Option(text)));
+  $("lang").value = lang;
+}
+
+function renderAll(showUnsure = false) {
+  renderTexts();
+  renderLog();
+  renderLedger();
+  renderRepair();
+  renderChips(showUnsure);
+}
+
+async function send(message) {
+  const button = $("send");
+  button.disabled = true;
+  button.textContent = t.sending;
+  session.log.push({ kind: "you", text: message });
+  renderLog();
+  $("quick").replaceChildren();
   $("input").value = "";
-  const send = event.target.querySelector("button");
-  send.disabled = true;
-  send.textContent = "確かめています";
   try {
     const response = await fetch("/api/turn", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ message, state }),
+      body: JSON.stringify({ message, state: session.state, lang }),
     });
-    if (response.status === 429) {
-      addText("me", "今は混み合っています。少し時間をおいて送ってください。");
-      return;
-    }
-    if (!response.ok) throw new Error("failed");
+    if (!response.ok) throw new Error(response.status === 429 ? "busy" : "failed");
     const data = await response.json();
-    state = data.state;
-    comparisons = data.comparisons;
-    addText("me", data.turn.reply);
-    data.turn.citations.forEach(addScene);
+    session.state = data.state;
+    session.comparisons = data.comparisons;
+    session.log.push({ kind: "me", text: data.turn.reply });
+    data.turn.citations.forEach((cite) => session.log.push({ kind: "cite", ...cite }));
+    save();
+    renderLog();
     renderLedger();
     renderRepair();
-  } catch {
-    addText("me", "うまく受け取れませんでした。もう一度送ってください。");
+    renderChips(Boolean(data.turn.ask));
+  } catch (error) {
+    session.log.pop();
+    $("input").value = message;
+    renderLog();
+    session.log.push({ kind: "me", text: t[error.message] ?? t.failed });
+    renderLog();
+    session.log.pop();
   } finally {
-    send.disabled = false;
-    send.textContent = "送る";
+    button.disabled = false;
+    button.textContent = t.send;
   }
+}
+
+$("form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const message = $("input").value.trim();
+  if (message) send(message);
+});
+
+$("input").addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) $("form").requestSubmit();
+});
+
+$("restart").addEventListener("click", () => {
+  session = emptySession();
+  previous = {};
+  $("player").replaceChildren();
+  save();
+  renderAll();
+});
+
+$("lang").addEventListener("change", (event) => {
+  lang = event.target.value;
+  t = MESSAGES[lang];
+  renderAll();
 });
 
 $("copy").addEventListener("click", async () => {
-  const text = [
-    `最後の整備：${$("f-when").value}`,
-    `整備の内容：${$("f-what").value}`,
-    `買った所：${$("f-where").value}`,
-    `不調の様子：${$("f-trouble").value}`,
-  ].join("\n");
+  const values = [$("f-when").value, $("f-what").value, $("f-where").value, $("f-trouble").value];
+  const text = t.sheetLines.map((label, i) => `${label}: ${values[i]}`).join("\n");
   const output = $("sheet-text");
   output.value = text;
   output.hidden = false;
   output.select();
   try {
     await navigator.clipboard.writeText(text);
-    $("copy").textContent = "写しました";
+    $("copy").textContent = t.copied;
   } catch {
-    $("copy").textContent = "できました";
+    $("copy").textContent = t.made;
   }
 });
 
 const data = await (await fetch("/api/cards")).json();
 cards = data.cards;
 $("draft").hidden = !data.draft;
+session = load();
+renderAll();

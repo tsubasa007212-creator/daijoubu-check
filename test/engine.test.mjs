@@ -79,3 +79,8 @@ test("形の崩れた台帳を受け取らない", () => {
   assert.equal(isValidState({ statements: [{ id: "s1", text: "x", origin: "owner", history: [] }], links: [] }), false);
   assert.equal(isValidState({ statements: "x", links: [] }), false);
 });
+
+test("英語の言い切りも止める", () => {
+  const turn = { reply: "Your bike is fine.", citations: [{ card_id: "lov-feel", scene_id: "feel" }] };
+  assert.ok(checkTurn(turn, cards, { requireHumanCheck: false }).some((e) => e.startsWith("assertion")));
+});

@@ -3,6 +3,8 @@
 const ASSERTIONS = [
   /大丈夫です/, /問題ありません/, /安全です/, /壊れています/,
   /原因は.{0,30}(です|だ)[。\s]*$/m, /交換してください/, /修理してください/,
+  /\b(it|your bike|this) (is|'s) (fine|ok|okay|safe)\b/i, /\bno problem\b/i, /\bis broken\b/i,
+  /\bthe cause is\b/i, /\b(please )?(replace|repair) (it|the)\b/i,
 ];
 
 export function checkTurn(turn, cards, { requireHumanCheck = true, released = [] } = {}) {

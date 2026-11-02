@@ -8,37 +8,46 @@
 </head>
 <body>
 <header>
-  <h1>大丈夫チェック</h1>
-  <p>バイクの気になることを、そのままの言葉で書いてください。</p>
+  <div>
+    <h1 data-t="title"></h1>
+    <p data-t="lead"></p>
+  </div>
+  <select id="lang" aria-label="Language">
+    <option value="ja">日本語</option>
+    <option value="en">English</option>
+  </select>
 </header>
-<p class="notice">無料の試作です。答えは整備士・大谷の動画だけを元にしています。動画は別の車の記録で、あなたのバイクの診断ではありません。<span id="draft" hidden>開発中：本人確認前の記録も出ています。</span></p>
+<p class="notice"><span data-t="notice"></span><span id="draft" data-t="draft" hidden></span></p>
 <main>
-  <section class="talk" aria-label="相談">
+  <section class="talk">
     <div id="log" aria-live="polite"></div>
+    <div id="examples"></div>
+    <div id="quick"></div>
     <form id="form">
-      <textarea id="input" rows="3" placeholder="例：40キロくらいから音がする。大丈夫だよね？"></textarea>
-      <button type="submit">送る</button>
+      <textarea id="input" rows="3" maxlength="1000"></textarea>
+      <div class="actions">
+        <button type="submit" id="send" data-t="send"></button>
+        <button type="button" id="restart" class="plain" data-t="restart"></button>
+      </div>
     </form>
   </section>
-  <aside class="ledger" aria-label="台帳">
-    <h2>今わかっていること</h2>
+  <aside class="ledger">
+    <h2 data-t="ledger"></h2>
     <div id="ledger"></div>
     <div id="player"></div>
     <details id="repair" hidden>
-      <summary>自分で直す人へ：作業の場面</summary>
+      <summary data-t="repair"></summary>
       <div id="repair-list"></div>
     </details>
     <details id="sheet">
-      <summary>お店に見せる1枚を作る</summary>
-      <label>最後の整備はいつですか<input id="f-when"></label>
-      <label>何を整備しましたか<input id="f-what"></label>
-      <label>どこで買いましたか
-        <select id="f-where"><option>バイク屋の整備済み</option><option>バイク屋の未整備</option><option>個人売買</option></select>
-      </label>
-      <label>不調の様子<textarea id="f-trouble" rows="3"></textarea></label>
-      <button type="button" id="copy">1枚を作る</button>
+      <summary data-t="sheet"></summary>
+      <label><span data-t="when"></span><input id="f-when"></label>
+      <label><span data-t="what"></span><input id="f-what"></label>
+      <label><span data-t="where"></span><select id="f-where"></select></label>
+      <label><span data-t="trouble"></span><textarea id="f-trouble" rows="3"></textarea></label>
+      <button type="button" id="copy" data-t="make"></button>
       <textarea id="sheet-text" rows="6" readonly hidden></textarea>
-      <p class="hint">原因は書きません。確かめたことだけをお店に渡します。</p>
+      <p class="hint" data-t="sheetHint"></p>
     </details>
   </aside>
 </main>
