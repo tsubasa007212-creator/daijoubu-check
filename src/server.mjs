@@ -3,7 +3,7 @@ import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join } from "node:path";
 import { applyTurn, comparisons, newState, releasedCards } from "./engine.mjs";
-import { checkTurn } from "./guard.mjs";
+import { askStepOnly, checkTurn } from "./guard.mjs";
 import { createClient, readTurn } from "./claude.mjs";
 import { ALLOW_UNCHECKED, LIMIT_DAY, LIMIT_HOUR, MAX_BODY, MAX_MESSAGE, PORT, STOP_REPLY } from "./config.mjs";
 import { createLimiter, isValidState, trimState } from "./limits.mjs";
@@ -31,6 +31,7 @@ async function answer(state, message, lang, previousReply) {
   const stop = (next) => ({ state: next, turn: { reply: STOP_REPLY[lang] ?? STOP_REPLY.ja, citations: [], ask: null, no_evidence: true } });
   let hint = null;
   let kept = state;
+  let stepOnly = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const { turn } = await readTurn(client, { cards, flows, state, message, previousReply, hint });
@@ -45,12 +46,14 @@ async function answer(state, message, lang, previousReply) {
       if (errors.length === 0) return turn.no_evidence ? stop(next) : { state: next, turn };
       console.warn("guard", errors);
       hint = errors.join(", ");
+      const asked = askStepOnly(turn, flows, errors);
+      stepOnly = asked ? { state: next, turn: asked } : null;
     } catch (error) {
       console.warn("turn", error.message);
       hint = "返答の形が正しくありませんでした";
     }
   }
-  return stop(kept);
+  return stepOnly ?? stop(kept);
 }
 
 function readRequest(body) {

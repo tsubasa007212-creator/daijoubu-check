@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { applyTurn, comparisons, ledger, newState, releasedCards } from "../src/engine.mjs";
-import { checkTurn } from "../src/guard.mjs";
+import { askStepOnly, checkTurn } from "../src/guard.mjs";
 import { createLimiter, isValidState, trimState } from "../src/limits.mjs";
 import { isSealed, seal } from "../src/seal.mjs";
 
@@ -167,4 +167,12 @@ test("訂正の後に同じ比較を結び直せる", () => {
     links: [{ statement_id: "s1", card_id: "o49-speed", observation_id: "speed" }],
   });
   assert.equal(comparisons(state)[0].status, "active");
+});
+
+test("言い切りで止まった時は、流れの問いだけを聞く", () => {
+  const flows = [{ id: "speed", steps: [{ id: "s2", ask: "走行距離はどのくらいですか" }] }];
+  const turn = { reply: "原因はベルトです", step: { flow_id: "speed", step_id: "s2" }, citations: [{ card_id: "a", scene_id: "b" }] };
+  assert.equal(askStepOnly(turn, flows, ["assertion in reply"]).reply, "走行距離はどのくらいですか");
+  assert.equal(askStepOnly(turn, flows, ["card released: a"]), null);
+  assert.equal(askStepOnly({ ...turn, step: null }, flows, ["assertion in reply"]), null);
 });

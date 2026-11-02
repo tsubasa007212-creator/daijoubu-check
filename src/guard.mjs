@@ -59,3 +59,11 @@ export function checkTurn(turn, cards, { requireHumanCheck = true, released = []
   if ((turn.citations ?? []).length === 0 && !turn.no_evidence && !turn.ask && !turn.step) errors.push("reply has no evidence");
   return errors;
 }
+
+// 言い切りで止まった時も、確認済みの流れの問いは大谷の言葉なので、そのまま聞ける。
+export function askStepOnly(turn, flows, errors) {
+  if (errors.length !== 1 || errors[0] !== "assertion in reply" || !turn.step) return null;
+  const flow = flows.find((f) => f.id === turn.step.flow_id);
+  const step = flow?.steps.find((s) => s.id === turn.step.step_id);
+  return step ? { ...turn, reply: step.ask, ask: null, citations: [], no_evidence: false } : null;
+}

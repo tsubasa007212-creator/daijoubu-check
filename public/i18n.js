@@ -5,7 +5,7 @@ export const MESSAGES = {
     lead: "バイクの気になることを、そのままの言葉で書いてください。",
     notice: "無料の試作です。答えは整備士・大谷が確かめた内容だけを元にしています。動画は別の車の記録で、あなたのバイクの診断ではありません。",
     draft: "開発中：本人確認前の記録も出ています。",
-    placeholder: "例：40キロくらいから音がする。大丈夫だよね？",
+    placeholder: "例：スピードが落ちてきた。大丈夫だよね？",
     send: "送る",
     sending: "確かめています",
     restart: "最初からやり直す",
@@ -42,7 +42,7 @@ export const MESSAGES = {
     busy: "今は混み合っています。少し時間をおいて送ってください。",
     failed: "うまく受け取れませんでした。もう一度送ってください。",
     videoTitle: "整備の動画",
-    examples: ["40キロくらいから音がする。大丈夫だよね？", "エンジンをかけるとゴーと鳴る", "押して歩くとカサカサ音がする"],
+    examples: ["スピードが落ちてきた。プラグ関係かも", "エンジンは吹け上がるのに40キロしか出ない", "スクーターの出だしが遅くなった"],
   },
   en: {
     title: "Daijoubu Check",
@@ -86,7 +86,7 @@ export const MESSAGES = {
     busy: "We are busy right now. Please try again in a while.",
     failed: "That did not go through. Please send it again.",
     videoTitle: "Repair video",
-    examples: ["It makes a noise from about 40 km/h. It's fine, right?", "It roars when I start the engine", "It rustles when I push it"],
+    examples: ["My scooter has slowed down. Maybe the spark plug?", "The engine revs but it only reaches 40 km/h", "My scooter is slow to pull away"],
   },
 };
 
