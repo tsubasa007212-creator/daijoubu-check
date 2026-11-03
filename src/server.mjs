@@ -3,9 +3,9 @@ import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join } from "node:path";
 import { applyTurn, comparisons, newState, releasedCards } from "./engine.mjs";
-import { askStepOnly, checkTurn } from "./guard.mjs";
+import { askStepOnly, checkTurn, fixedTurn } from "./guard.mjs";
 import { createClient, readTurn } from "./claude.mjs";
-import { ALLOW_UNCHECKED, LIMIT_DAY, LIMIT_HOUR, MAX_BODY, MAX_MESSAGE, PORT, sendQuestion, STOP_REPLY } from "./config.mjs";
+import { ALLOW_UNCHECKED, FIXED_REPLY, LIMIT_DAY, LIMIT_HOUR, MAX_BODY, MAX_MESSAGE, PORT, sendQuestion, STOP_REPLY } from "./config.mjs";
 import { createLimiter, isValidState, trimState } from "./limits.mjs";
 import { isSealed, seal } from "./seal.mjs";
 
@@ -39,6 +39,8 @@ async function answer(state, message, lang, previousReply) {
     try {
       const { turn } = await readTurn(client, { cards, flows, state, message, previousReply, hint });
       const next = trimState(applyTurn(state, turn));
+      const fixed = fixedTurn(turn, lang, FIXED_REPLY);
+      if (fixed) return { state: trimState(applyTurn(state, { ...turn, links: [] })), turn: fixed };
       kept = trimState(applyTurn(state, { ...turn, links: [] }));
       const errors = checkTurn(turn, cards, {
         requireHumanCheck: !ALLOW_UNCHECKED,

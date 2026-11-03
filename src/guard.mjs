@@ -60,6 +60,13 @@ export function checkTurn(turn, cards, { requireHumanCheck = true, released = []
   return errors;
 }
 
+// 症状の分からない相談と挨拶は、Claudeの文を使わず決まった文で返す。
+export function fixedTurn(turn, lang, replies) {
+  const reply = replies[turn.kind];
+  if (!reply || turn.step || (turn.citations ?? []).length > 0) return null;
+  return { ...turn, reply: reply[lang] ?? reply.ja, citations: [], ask: null, step: null, no_evidence: false, topics: true };
+}
+
 // 言い切りで止まった時も、確認済みの流れの問いは大谷の言葉なので、そのまま聞ける。
 export function askStepOnly(turn, flows, errors) {
   if (errors.length !== 1 || errors[0] !== "assertion in reply" || !turn.step) return null;

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { applyTurn, comparisons, ledger, newState, releasedCards } from "../src/engine.mjs";
-import { askStepOnly, checkTurn } from "../src/guard.mjs";
+import { askStepOnly, checkTurn, fixedTurn } from "../src/guard.mjs";
 import { createLimiter, isValidState, trimState } from "../src/limits.mjs";
 import { isSealed, seal } from "../src/seal.mjs";
 
@@ -175,4 +175,11 @@ test("言い切りで止まった時は、流れの問いだけを聞く", () =>
   assert.equal(askStepOnly(turn, flows, ["assertion in reply"]).reply, "走行距離はどのくらいですか");
   assert.equal(askStepOnly(turn, flows, ["card released: a"]), null);
   assert.equal(askStepOnly({ ...turn, step: null }, flows, ["assertion in reply"]), null);
+});
+
+test("症状の分からない相談は決まった文で聞き返す", () => {
+  const replies = { vague: { ja: "どんな様子ですか" } };
+  assert.equal(fixedTurn({ kind: "vague", reply: "x", citations: [] }, "ja", replies).reply, "どんな様子ですか");
+  assert.equal(fixedTurn({ kind: "symptom", reply: "x", citations: [] }, "ja", replies), null);
+  assert.equal(fixedTurn({ kind: "vague", reply: "x", citations: [], step: { flow_id: "a", step_id: "b" } }, "ja", replies), null);
 });

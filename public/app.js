@@ -160,9 +160,11 @@ function chip(text, onClick) {
   return button;
 }
 
-function renderChips(showUnsure) {
+// 止まった時は、今答えられる相談を出して行き止まりにしない。
+function renderChips(showUnsure, showTopics = false) {
   $("examples").replaceChildren(...t.examples.map((text) => chip(text, () => send(text))));
-  $("quick").replaceChildren(...(showUnsure ? [chip(t.unsure, () => send(t.unsure))] : []));
+  const quick = showTopics ? t.topics : showUnsure ? [t.unsure] : [];
+  $("quick").replaceChildren(...quick.map((text) => chip(text, () => send(text))));
 }
 
 // 点検の答えは画面だけで持ち、相談する時に普段の発言と同じ形で送る。
@@ -258,7 +260,7 @@ async function send(message) {
     renderLedger();
     renderRepair();
     renderNext();
-    renderChips(Boolean(data.turn.ask || data.turn.step));
+    renderChips(Boolean(data.turn.ask || data.turn.step), Boolean(data.turn.no_evidence || data.turn.topics));
   } catch (error) {
     if (current !== turnId) return;
     session.log.pop();
