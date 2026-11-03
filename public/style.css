@@ -31,6 +31,7 @@ main { max-width: 1040px; margin: auto; padding: 16px; display: grid; grid-templ
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 14px; }
 .tag { display: inline-flex; flex-direction: column; padding: 4px 10px; border: 1px solid currentColor; border-radius: 4px; background: #fff; font-size: 14px; line-height: 1.5; animation: tagin .35s ease-out both; }
 .tag b { font-size: 12px; font-weight: 700; }
+.tag s { color: var(--sub); }
 .tag.checked { color: var(--checked); } .tag.heard { color: var(--heard); } .tag.guess { color: var(--guess); } .tag.unknown { color: var(--unknown); }
 @keyframes tagin { from { opacity: 0; transform: translateY(4px); } }
 @media (prefers-reduced-motion: reduce) { .tag { animation: none; } }

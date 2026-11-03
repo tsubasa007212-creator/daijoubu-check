@@ -76,8 +76,14 @@ function renderEntry(entry) {
       const item = document.createElement("span");
       item.className = `tag ${tag.origin}`;
       const label = document.createElement("b");
-      label.textContent = tag.from ? `${t[tag.from]} → ${t[tag.origin]}` : t[tag.origin];
-      item.append(label, tag.text);
+      label.textContent = tag.from && tag.from !== tag.origin ? `${t[tag.from]} → ${t[tag.origin]}` : tag.old ? `${t[tag.origin]}・${t.corrected}` : t[tag.origin];
+      if (tag.old) {
+        const old = document.createElement("s");
+        old.textContent = tag.old;
+        item.append(label, old, tag.text);
+      } else {
+        item.append(label, tag.text);
+      }
       list.append(item);
     }
     $("log").append(list);
@@ -322,6 +328,8 @@ async function send(message, { fromCheck = false } = {}) {
     const data = await response.json();
     if (current !== turnId) return;
     const before = Object.fromEntries(session.state.statements.map((s) => [s.id, s.origin]));
+    const beforeText = Object.fromEntries(session.state.statements.map((s) => [s.id, s.text]));
+    const wasActive = new Set(session.comparisons.filter((c) => c.status === "active").map((c) => c.card_id));
     session.state = data.state;
     session.signature = data.signature;
     session.lastReply = data.turn.reply;
@@ -329,9 +337,14 @@ async function send(message, { fromCheck = false } = {}) {
     session.comparisons = data.comparisons;
     // 読み取った発言は、その相談のすぐ下に札で並べる。言い直しで移った札は、移る前の分け方も見せる。
     const tags = data.state.statements
-      .filter((s) => !before[s.id] || before[s.id] !== s.origin)
-      .map((s) => ({ text: s.text, origin: s.origin, from: before[s.id] ?? null }));
+      .filter((s) => !before[s.id] || before[s.id] !== s.origin || beforeText[s.id] !== s.text)
+      .map((s) => ({ text: s.text, origin: s.origin, from: before[s.id] ?? null, old: before[s.id] && beforeText[s.id] !== s.text ? beforeText[s.id] : null }));
     if (tags.length > 0) session.log.push({ kind: "tags", tags });
+    // 言い直しで支えを失った比較は、会話の中でも外したと見せる。
+    const stillActive = new Set(data.comparisons.filter((c) => c.status === "active").map((c) => c.card_id));
+    for (const id of wasActive) {
+      if (!stillActive.has(id)) session.log.push({ kind: "move", text: `${t.released}「${recordName(cardOf(id))}」` });
+    }
     // 点検の結果で止まった時は、結果を残せる先を添える。
     const noGuide = fromCheck && data.turn.no_evidence ? `\n${t.checkNoGuide}` : "";
     session.log.push({ kind: "me", text: data.turn.reply + noGuide });
