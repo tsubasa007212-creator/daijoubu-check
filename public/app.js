@@ -69,6 +69,20 @@ function sceneButton(videoId, time, line, note) {
 }
 
 function renderEntry(entry) {
+  if (entry.kind === "tags") {
+    const list = document.createElement("div");
+    list.className = "tags";
+    for (const tag of entry.tags) {
+      const item = document.createElement("span");
+      item.className = `tag ${tag.origin}`;
+      const label = document.createElement("b");
+      label.textContent = tag.from ? `${t[tag.from]} → ${t[tag.origin]}` : t[tag.origin];
+      item.append(label, tag.text);
+      list.append(item);
+    }
+    $("log").append(list);
+    return;
+  }
   if (entry.kind === "cite") {
     const card = cardOf(entry.card_id);
     const scene = card?.scenes.find((s) => s.id === entry.scene_id);
@@ -195,6 +209,7 @@ function renderBike() {
   $("bike-chosen").hidden = session.bike === undefined;
   if (session.bike !== undefined) $("bike-chosen").textContent = `${t.bikeLabel}：${t.bikes[session.bike]}`;
   $("topics").hidden = !fresh || session.bike === undefined;
+  $("check").hidden = session.bike === undefined && fresh;
 }
 
 function renderChips() {
@@ -312,11 +327,11 @@ async function send(message, { fromCheck = false } = {}) {
     session.lastReply = data.turn.reply;
     session.step = data.turn.step ?? null;
     session.comparisons = data.comparisons;
-    for (const statement of data.state.statements) {
-      if (before[statement.id] && before[statement.id] !== statement.origin) {
-        session.log.push({ kind: "move", text: `「${statement.text}」${t.moved}：${t[statement.origin]}` });
-      }
-    }
+    // 読み取った発言は、その相談のすぐ下に札で並べる。言い直しで移った札は、移る前の分け方も見せる。
+    const tags = data.state.statements
+      .filter((s) => !before[s.id] || before[s.id] !== s.origin)
+      .map((s) => ({ text: s.text, origin: s.origin, from: before[s.id] ?? null }));
+    if (tags.length > 0) session.log.push({ kind: "tags", tags });
     // 点検の結果で止まった時は、結果を残せる先を添える。
     const noGuide = fromCheck && data.turn.no_evidence ? `\n${t.checkNoGuide}` : "";
     session.log.push({ kind: "me", text: data.turn.reply + noGuide });
