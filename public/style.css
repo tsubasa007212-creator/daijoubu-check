@@ -17,6 +17,7 @@ header p { margin: 2px 0 0; color: var(--sub); }
 main { max-width: 1040px; margin: auto; padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; }
 #log p { margin: 0 0 12px; white-space: pre-wrap; }
 #log .you { padding: 8px 12px; background: #efeadf; border-radius: 4px; }
+#log .source { margin-top: -8px; color: var(--sub); font-size: 12px; }
 #log .move { padding: 4px 8px; background: var(--moved); font-size: 14px; border-radius: 4px; }
 .scene { display: block; width: 100%; text-align: left; margin: 0 0 12px; padding: 8px 12px; background: none; border: 1px solid var(--line); border-radius: 4px; font: inherit; color: inherit; cursor: pointer; }
 .scene b { color: var(--accent); margin-right: 8px; font-variant-numeric: tabular-nums; }

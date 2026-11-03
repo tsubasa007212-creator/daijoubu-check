@@ -36,6 +36,7 @@ function load() {
 
 const seconds = (time) => time.split(":").reduce((sum, part) => sum * 60 + Number(part), 0);
 const cardOf = (id) => cards.find((c) => c.id === id);
+const stepOf = (ref) => flows.find((f) => f.id === ref?.flow_id)?.steps.find((s) => s.id === ref?.step_id);
 // カードの題名は日本語だけなので、他の言語では共通の呼び名にする。
 const recordName = (card) => (lang === "ja" ? card?.title ?? "" : t.otherBike);
 
@@ -85,8 +86,7 @@ function renderLog() {
 
 // 流れの本文は日本語だけなので、他の言語では返答の質問に任せる。
 function renderNext() {
-  const flow = flows.find((f) => f.id === session.step?.flow_id);
-  const step = flow?.steps.find((s) => s.id === session.step?.step_id);
+  const step = stepOf(session.step);
   $("next").hidden = !step || lang !== "ja";
   if (!step) return;
   $("next-how").textContent = step.how;
@@ -220,6 +220,8 @@ async function send(message) {
       }
     }
     session.log.push({ kind: "me", text: data.turn.reply });
+    const step = stepOf(session.step);
+    if (step) session.log.push({ kind: "source", text: step.source === "owner" ? t.sourceOwner : t.sourceVideo });
     data.turn.citations.forEach((cite) => session.log.push({ kind: "cite", ...cite }));
     save();
     renderLog();

@@ -9,7 +9,7 @@ Claude (src/claude.mjs, src/prompt.mjs)  発言を分け、カードと結ぶ
   ↓
 仕組み (src/engine.mjs)  訂正で外れる比較を計算する
   ↓
-検査 (src/guard.mjs)  根拠の外、言い切りを止める。駄目なら「該当動画なし」
+検査 (src/guard.mjs)  根拠の外、言い切りを止める。駄目なら「まだ確かめていない話です」
 ```
 
 ## 直す場所

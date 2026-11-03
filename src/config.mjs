@@ -10,6 +10,6 @@ export const MAX_TOKENS = 3000;
 export const MAX_MESSAGE = 1000;
 
 export const STOP_REPLY = {
-  ja: "該当動画なし。この話に合う記録を、今は確かめられません。",
-  en: "No matching video. We cannot confirm a record that fits this right now.",
+  ja: "まだ確かめていない話です。確かめていないことには答えません。",
+  en: "We have not confirmed this yet, and we do not answer what we have not confirmed.",
 };
