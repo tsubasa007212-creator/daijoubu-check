@@ -4,22 +4,24 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { createClient, readTurn } from "../../src/claude.mjs";
 import { STOP_REPLY } from "../../src/config.mjs";
 import { answerOnce, checkDraft, checkGroups, costOf, diffFlow, mask, memoEntry, mergeFlows } from "./core.mjs";
 import { groupQuestions, makeDraft, makeQuestion } from "./prompt.mjs";
 
-const ROOT = fileURLToPath(new URL("../../", import.meta.url));
+// 試験では OWNER_ROOT に写しの場所、OWNER_FAKE に偽の Claude を渡して、本物の記録と課金に触れずに通す。
+const ROOT = process.env.OWNER_ROOT ?? fileURLToPath(new URL("../../", import.meta.url));
 const HERE = fileURLToPath(new URL("./", import.meta.url));
-const PORT = 8820;
+const PORT = Number(process.env.OWNER_PORT ?? 8820);
+const TEST_COMMAND = process.env.OWNER_TEST_COMMAND ?? "npm test";
 const HOSTS = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`]);
 const FILES = { "/": ["index.html", "text/html; charset=utf-8"], "/app.js": ["app.js", "text/javascript; charset=utf-8"], "/style.css": ["style.css", "text/css; charset=utf-8"] };
 const FLOWS = join(ROOT, "data/flows.json");
 const CARDS = join(ROOT, "data/cards.json");
 const QUESTIONS = join(ROOT, "private/questions.jsonl");
 const MEMO = join(ROOT, "private/大谷さんの確認メモ.md");
-const client = createClient();
+const client = process.env.OWNER_FAKE ? (await import(pathToFileURL(process.env.OWNER_FAKE).href)).client : createClient();
 let spent = 0;
 const CACHE = join(ROOT, "private/owner_groups.json");
 const ANSWERED = join(ROOT, "private/owner_answered.json");
@@ -126,9 +128,9 @@ async function apply({ groupId, question, answer, draft }) {
     writeLf(MEMO, memoText.replace(/\n*$/, "\n") + memoEntry(today(), { ...group, question, answer }));
     writeLf(FLOWS, JSON.stringify(mergeFlows(flows, draft), null, 2) + "\n");
     const check = await run("node tools/check_cards.mjs");
-    const test = check.ok ? await run("npm test") : { ok: false, out: "カードの確認が落ちたので、テストは回していません。" };
+    const test = check.ok ? await run(TEST_COMMAND) : { ok: false, out: "カードの確認が落ちたので、テストは回していません。" };
     if (check.ok && test.ok) {
-      removeGroup(body.groupId);
+      removeGroup(groupId);
       return { applied: true, check, test };
     }
     writeLf(FLOWS, flowsText);
@@ -204,7 +206,8 @@ createServer((req, res) => {
       send(res, 200, JSON.stringify({ ...result, spent }));
     } catch (error) {
       console.warn("owner", error.message);
-      send(res, error.status ?? 500, JSON.stringify({ error: error.status ? error.message : "失敗しました。もう一度試してください。" }));
+      // 手元専用なので、失敗の理由はそのまま画面に出す。
+      send(res, error.status ?? 500, JSON.stringify({ error: error.status ? error.message : `失敗しました：${error.message}` }));
     }
   });
 }).listen(PORT, "127.0.0.1", () => console.log(`大谷モード http://127.0.0.1:${PORT}`));
