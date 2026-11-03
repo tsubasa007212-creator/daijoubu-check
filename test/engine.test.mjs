@@ -39,8 +39,10 @@ test("カードに実在する場面だけ引ける", () => {
 });
 
 test("本人確認前のカードは出さない", () => {
-  const turn = { reply: "記録があります。", citations: [{ card_id: "o49-speed", scene_id: "noise" }] };
-  assert.ok(checkTurn(turn, cards).some((e) => e.startsWith("card not approved")));
+  // 本番のカードは確認が進むと approved になるので、試験の中で pending のカードを1枚足す。
+  const pending = [...cards, { ...cards[0], id: "test-pending", human_check: "pending" }];
+  const turn = { reply: "記録があります。", citations: [{ card_id: "test-pending", scene_id: cards[0].scenes[0].id }] };
+  assert.ok(checkTurn(turn, pending).some((e) => e.startsWith("card not approved")));
 });
 
 test("大丈夫と言い切る返答を止める", () => {
