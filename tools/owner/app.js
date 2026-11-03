@@ -224,6 +224,9 @@ $("apply").addEventListener("click", () => {
     $("test-out").textContent = data.test?.out ?? "";
     $("result-box").hidden = false;
     if (data.applied) {
+      // 答え終わった質問の画面は閉じ、次の質問を選べるようにする。
+      $("ask-box").hidden = true;
+      $("answer").value = "";
       loadGroups(false);
       draft = null;
       $("draft-box").hidden = true;
