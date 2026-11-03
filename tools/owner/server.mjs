@@ -22,6 +22,8 @@ const MEMO = join(ROOT, "private/大谷さんの確認メモ.md");
 const client = createClient();
 let spent = 0;
 const CACHE = join(ROOT, "private/owner_groups.json");
+const ANSWERED = join(ROOT, "private/owner_answered.json");
+const answered = () => new Set(existsSync(ANSWERED) ? JSON.parse(readFileSync(ANSWERED, "utf8")) : []);
 let cached = existsSync(CACHE) ? JSON.parse(readFileSync(CACHE, "utf8")) : { key: null, groups: [] };
 let applying = false;
 
@@ -36,13 +38,17 @@ function track(usage) {
 }
 
 // 止まった相談を読み、伏せ字にしてから使う。壊れた行は飛ばす。
+// 答え終わった相談は一覧に出さない。答えた分が変われば、まとめも作り直す。
 function readQuestions() {
   if (!existsSync(QUESTIONS)) return { raw: "", entries: [] };
-  const raw = readFileSync(QUESTIONS, "utf8");
-  const entries = raw.split("\n").flatMap((line) => {
+  const done = answered();
+  const lines = readFileSync(QUESTIONS, "utf8");
+  const raw = lines + JSON.stringify([...done]);
+  const entries = lines.split("\n").flatMap((line) => {
     try {
       const row = JSON.parse(line);
-      return typeof row.message === "string" && row.message.trim() ? [{ at: row.at ?? null, text: mask(row.message.trim()) }] : [];
+      const text = typeof row.message === "string" ? mask(row.message.trim()) : "";
+      return text && !done.has(text) ? [{ at: row.at ?? null, text }] : [];
     } catch {
       return [];
     }
@@ -104,7 +110,21 @@ async function apply({ groupId, question, answer, draft }) {
       // 答えた相談は、一覧で「もう答えられるかもしれない」側へ移す。
       const done = cached.groups.find((g) => g.id === body.groupId);
       if (done) {
-        done.covered_by = body.draft?.flow?.id ?? "answered";
+        const { entries } = readQuestions();
+        const texts = done.members.map((n) => entries[n]?.text).filter(Boolean);
+        writeLf(ANSWERED, JSON.stringify([...new Set([...answered(), ...texts])]));
+        // 消した分だけ番号がずれるので、残りのまとまりの番号を今の並びに付け直す。
+        const now = readQuestions().entries;
+        const used = new Set();
+        const renumber = (n) => {
+          const i = now.findIndex((e, j) => !used.has(j) && e.text === entries[n]?.text);
+          if (i >= 0) used.add(i);
+          return i;
+        };
+        cached.groups = cached.groups.filter((g) => g.id !== done.id)
+          .map((g) => ({ ...g, members: g.members.map(renumber).filter((i) => i >= 0) }))
+          .filter((g) => g.members.length > 0);
+        cached.key = createHash("sha1").update(readQuestions().raw).digest("hex");
         writeLf(CACHE, JSON.stringify(cached));
       }
       return { applied: true, check, test };
