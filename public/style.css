@@ -33,6 +33,12 @@ main { max-width: 1040px; margin: auto; padding: 16px; display: grid; grid-templ
 .scene b { color: var(--accent); margin-right: 8px; font-variant-numeric: tabular-nums; }
 .scene small { display: block; color: var(--sub); }
 form textarea, details input, details select, details textarea { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 4px; font: inherit; background: #fff; }
+.input-row { display: flex; gap: 8px; align-items: flex-start; }
+#mic { flex: none; width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 4px; background: #fff; color: var(--ink); cursor: pointer; }
+#mic[aria-pressed=true] { background: var(--accent); border-color: var(--accent); color: #fff; animation: pulse 1.4s ease-in-out infinite; }
+#mic-status { margin: 4px 0 0; }
+#mic-status.on { color: var(--accent); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { #mic[aria-pressed=true] { animation: none; } }
 button[type=submit], #copy { margin-top: 8px; padding: 10px 24px; border: 0; border-radius: 4px; background: var(--ink); color: #fff; font: inherit; cursor: pointer; }
 button:disabled { opacity: .5; }
 .ledger { position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); overflow-y: auto; }

@@ -34,7 +34,13 @@
       <button type="button" id="check-send" data-t="checkSend" disabled></button>
     </details>
     <form id="form">
-      <textarea id="input" rows="3" maxlength="1000"></textarea>
+      <div class="input-row">
+        <textarea id="input" rows="3" maxlength="1000"></textarea>
+        <button type="button" id="mic" aria-pressed="false" hidden>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+        </button>
+      </div>
+      <p id="mic-status" class="hint" aria-live="polite" hidden></p>
       <div class="actions">
         <button type="submit" id="send" data-t="send"></button>
         <button type="button" id="restart" class="plain" data-t="restart"></button>

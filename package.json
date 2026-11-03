@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "owner": "node --env-file=private/.env tools/owner/server.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",

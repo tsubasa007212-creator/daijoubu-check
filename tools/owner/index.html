@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大谷モード</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <h1>大谷モード</h1>
+  <p>答えられなかった相談に、大谷さんが答える画面です。手元専用で、公開しません。</p>
+  <p class="sub">今回の費用の目安：<span id="spent">$0.000</span></p>
+</header>
+<main>
+  <section id="list-box">
+    <div class="row">
+      <h2>答えてほしい質問</h2>
+      <button id="refresh" class="plain" type="button">読み直す</button>
+    </div>
+    <p class="sub">止まった相談を、同じ意味ごとにまとめ、多い順に並べています。名前・電話・ナンバーらしきものは伏せています。</p>
+    <p id="list-status" class="sub"></p>
+    <ol id="groups"></ol>
+    <details id="others" hidden>
+      <summary>答えなくてよい相談（バイクと関係ない話、指示を変えさせようとする文）</summary>
+      <ol id="other-groups"></ol>
+    </details>
+  </section>
+
+  <section id="ask-box" hidden>
+    <h2 id="ask-title"></h2>
+    <ul id="examples" class="sub"></ul>
+    <p class="label">整備士に聞く1問</p>
+    <p id="question" class="question"></p>
+    <label class="label" for="answer">大谷さんの答え</label>
+    <textarea id="answer" rows="6" placeholder="思ったまま書いてください。言っていないことは、下書きに足しません。"></textarea>
+    <div class="row">
+      <button id="voice" type="button" hidden>声で入力</button>
+      <button id="make-draft" class="main" type="button">下書きを作る</button>
+    </div>
+    <button id="try" class="plain" type="button">この質問で試す（今の公開の設定で答えさせる）</button>
+    <div id="try-result" hidden></div>
+  </section>
+
+  <section id="draft-box" hidden>
+    <h2>下書き</h2>
+    <p id="decision"></p>
+    <div id="conflicts"></div>
+    <div id="unsaid"></div>
+    <div class="cols">
+      <div><p class="label">大谷さんの元の言葉</p><p id="words" class="words"></p></div>
+      <div><p class="label">今の流れとの違い</p><div id="diff"></div></div>
+    </div>
+    <p class="label">直す所（新しく足す確認だけ直せます）</p>
+    <div id="edit"></div>
+    <ul id="errors"></ul>
+    <div class="row">
+      <button id="recheck" class="plain" type="button">直した所で差分を見直す</button>
+      <button id="cancel" type="button">やめる</button>
+      <button id="apply" class="main" type="button">反映する</button>
+    </div>
+  </section>
+
+  <section id="result-box" hidden>
+    <h2>反映の結果</h2>
+    <p id="result-head"></p>
+    <details><summary>カードと流れの確認（check_cards）</summary><pre id="check-out"></pre></details>
+    <details><summary>テスト（npm test）</summary><pre id="test-out"></pre></details>
+    <p class="sub">コミットと公開は取りまとめ役が行います。この画面は git を触りません。</p>
+  </section>
+</main>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

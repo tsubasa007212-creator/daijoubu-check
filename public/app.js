@@ -17,6 +17,10 @@ let turnId = 0;
 let checks = [];
 // 買った所は番号で持ち、言語を変えても選んだものを保つ。
 let bought = 0;
+// 声の聞き取りはブラウザの仕組みを使う。使えないブラウザではボタンを出さない。
+const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+let recognizer = null;
+let listening = false;
 
 function emptySession() {
   return { state: { statements: [], links: [] }, signature: null, comparisons: [], log: [], lastReply: "", quick: null };
@@ -233,6 +237,8 @@ function renderTexts() {
   document.title = t.title;
   document.querySelectorAll("[data-t]").forEach((node) => { node.textContent = t[node.dataset.t]; });
   $("input").placeholder = t.placeholder;
+  $("mic").setAttribute("aria-label", listening ? t.micStop : t.mic);
+  $("mic").title = listening ? t.micStop : t.mic;
   $("f-where").replaceChildren(...t.bought.map((text) => new Option(text)));
   $("f-where").selectedIndex = bought;
   $("lang").value = lang;
@@ -282,6 +288,8 @@ async function send(message, { fromCheck = false } = {}) {
   waiting.scrollIntoView({ block: "nearest" });
   session.quick = null;
   renderChips();
+  // 聞き取りの途中で送った時は、送った後の欄に声の続きが入らないよう止める。
+  stopListening();
   $("input").value = "";
   try {
     const response = await fetch("/api/turn", {
@@ -352,6 +360,77 @@ $("input").addEventListener("keydown", (event) => {
   if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) $("form").requestSubmit();
 });
 
+function micStatus(text, on = false) {
+  $("mic-status").textContent = text;
+  $("mic-status").classList.toggle("on", on);
+  $("mic-status").hidden = !text;
+}
+
+function setListening(on) {
+  listening = on;
+  $("mic").setAttribute("aria-pressed", String(on));
+  $("mic").setAttribute("aria-label", on ? t.micStop : t.mic);
+  $("mic").title = on ? t.micStop : t.mic;
+}
+
+function stopListening() {
+  recognizer?.abort();
+  recognizer = null;
+  setListening(false);
+  micStatus("");
+}
+
+// 聞き取った文は入力欄に足すだけで、送らない。本人が確かめてから送る。
+function startListening() {
+  const base = $("input").value.trim();
+  const heard = { final: "", interim: "" };
+  const rec = new Recognition();
+  rec.lang = lang === "ja" ? "ja-JP" : "en-US";
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.onresult = (event) => {
+    heard.interim = "";
+    for (let i = event.resultIndex; i < event.results.length; i += 1) {
+      const text = event.results[i][0].transcript;
+      if (event.results[i].isFinal) heard.final += text;
+      else heard.interim += text;
+    }
+    const spoken = (heard.final + heard.interim).trim();
+    $("input").value = [base, spoken].filter(Boolean).join(lang === "ja" ? "" : " ").slice(0, 1000);
+  };
+  rec.onerror = (event) => {
+    if (recognizer !== rec) return;
+    heard.error = event.error === "not-allowed" || event.error === "service-not-allowed" ? t.micDenied
+      : event.error === "no-speech" ? t.micNone : t.failed;
+  };
+  rec.onend = () => {
+    if (recognizer !== rec) return;
+    recognizer = null;
+    setListening(false);
+    micStatus(heard.error ?? (heard.final || heard.interim ? t.micCheck : t.micNone));
+    $("input").focus();
+  };
+  recognizer = rec;
+  try {
+    rec.start();
+  } catch {
+    recognizer = null;
+    micStatus(t.micDenied);
+    return;
+  }
+  setListening(true);
+  micStatus(t.listening, true);
+}
+
+if (Recognition) {
+  $("mic").hidden = false;
+  // もう一度押すと止まる。止めた所までの文は入力欄に残る。
+  $("mic").addEventListener("click", () => {
+    if (listening) recognizer?.stop();
+    else startListening();
+  });
+}
+
 // 項目の文に「、」があるので、結果は「／」でつなぐ。全部○の時も、何を○にしたかを残す。
 $("check-send").addEventListener("click", () => {
   const results = t.checkItems.flatMap((item, index) => (checks[index] ? [`${item} ${checks[index]}`] : []));
@@ -372,6 +451,7 @@ $("f-where").addEventListener("change", (event) => { bought = event.target.selec
 $("restart").addEventListener("click", () => {
   turnId += 1;
   sending = false;
+  stopListening();
   $("send").disabled = false;
   $("send").textContent = t.send;
   session = emptySession();
@@ -389,6 +469,8 @@ $("restart").addEventListener("click", () => {
 $("lang").addEventListener("change", (event) => {
   lang = event.target.value;
   t = MESSAGES[lang];
+  // 聞き取りの言語は始めた時に決まるので、言語を変えたら止める。
+  stopListening();
   renderAll();
 });
 
