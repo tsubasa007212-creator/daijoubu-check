@@ -156,9 +156,11 @@ test("該当動画なしと引用は同時に出せない", () => {
 });
 
 test("本人確認前の流れは出さない", () => {
-  const turn = { reply: "確かめましょう。", step: { flow_id: "start", step_id: "s1" } };
-  assert.ok(checkTurn(turn, cards, { flows }).some((e) => e.startsWith("flow not approved")));
-  assert.deepEqual(checkTurn(turn, cards, { flows, requireHumanCheck: false }), []);
+  // 本番の流れは確認が進むと approved になるので、試験の中で pending の流れを1本足す。
+  const pending = [...flows, { ...flows[0], id: "test-pending", human_check: "pending" }];
+  const turn = { reply: "確かめましょう。", step: { flow_id: "test-pending", step_id: flows[0].steps[0].id } };
+  assert.ok(checkTurn(turn, cards, { flows: pending }).some((e) => e.startsWith("flow not approved")));
+  assert.deepEqual(checkTurn(turn, cards, { flows: pending, requireHumanCheck: false }), []);
 });
 
 test("流れにない確認は出さない", () => {
