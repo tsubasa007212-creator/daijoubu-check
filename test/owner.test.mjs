@@ -5,7 +5,17 @@ import { answerOnce, checkDraft, checkGroups, costOf, diffFlow, mask, memoEntry,
 import { GROUP_SCHEMA, groupQuestions, makeDraft } from "../tools/owner/prompt.mjs";
 
 const cards = JSON.parse(readFileSync("data/cards.json", "utf8"));
-const flows = JSON.parse(readFileSync("data/flows.json", "utf8"));
+// 本物の記録は大谷モードで増えるので、試験は決まった形の流れを使う。
+const fixedStep = (id, extra = {}) => ({
+  id, ask: "電球が切れていませんか", how: "最初に玉切れを見る。", needs: "工具なし", video_id: null, t: null, line: null,
+  if_yes: "stop", if_no: "stop", cannot_tell: "見方は、まだ確かめていない。", source: "owner", ...extra,
+});
+const flows = [
+  { id: "light", symptom: "ライトがつかない", human_check: "approved", scope: "all",
+    steps: [fixedStep("s1", { if_no: "s2" }), fixedStep("s2")], stop_here: "ここから先は、専門家に見てもらうほうが良いです。", limits: [] },
+  { id: "start", symptom: "エンジンがかからない", human_check: "pending", scope: "gyro",
+    steps: [fixedStep("s1")], stop_here: "", limits: [] },
+];
 
 const ownerStep = (id, extra = {}) => ({
   id, ask: "どのライトですか", how: "最初に玉切れを見る。", needs: "工具なし", video_id: null, t: null, line: null,
