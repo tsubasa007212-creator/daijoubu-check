@@ -17,6 +17,10 @@ export const FIXED_REPLY = {
     ja: "どんな様子か教えてください。下の中で近いものを選ぶか、そのままの言葉で書いてください。",
     en: "Tell us what is happening. Pick the closest one below, or write it in your own words.",
   },
+  checkup: {
+    ja: "画面の「初心者向け点検チェック」で、エンジン、ブレーキ、ライト、タイヤ、オイルを、○・△・×・？で見られます。気になる所があれば、その結果のまま相談できます。",
+    en: "Use the Beginner's bike check on this page to look at the engine, brakes, lights, tires, and oil with ○, △, ×, or ？. If anything worries you, you can ask about those results.",
+  },
   greeting: {
     ja: "バイクの不調を、整備士が確かめた記録と点検の順番で一緒に整理する相談窓口です。気になることを、そのままの言葉で書いてください。",
     en: "We help you sort out what is wrong with your bike, using records a mechanic has confirmed and the order he checks things. Tell us what is bothering you, in your own words.",

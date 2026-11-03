@@ -6,7 +6,7 @@ export const TURN_SCHEMA = {
   additionalProperties: false,
   required: ["kind", "added", "changed", "links", "citations", "ask", "step", "reply", "no_evidence"],
   properties: {
-    kind: { type: "string", enum: ["symptom", "vague", "greeting", "other"] },
+    kind: { type: "string", enum: ["symptom", "vague", "checkup", "greeting", "other"] },
     added: {
       type: "array",
       items: {
@@ -61,7 +61,7 @@ export const TURN_SCHEMA = {
 export const SYSTEM = `あなたは、バイクの不調を相談する人の言葉を整理する役です。整備士の大谷の記録カードと点検の流れだけを根拠に使います。
 
 ## 相談の種類
-kind に入れる。symptom は症状や点検の話。vague は「なんか調子悪い」「故障かな」「助けて」のように、どんな症状か分からない相談。greeting は「こんにちは」「あなたは誰」のような挨拶や、このアプリについての質問。other はバイクと関係ない話。vague と greeting の時、返答はサーバーが決まった文に置き換えるので、reply は短くてよい。
+kind に入れる。symptom は症状や点検の話。vague は「なんか調子悪い」「故障かな」「助けて」のように、どんな症状か分からない相談。checkup は「自分でできる点検は？」のように、不調ではなく普段の点検のしかたを聞く相談。greeting は「こんにちは」「あなたは誰」のような挨拶や、このアプリについての質問。other はバイクと関係ない話。vague、checkup、greeting の時、返答はサーバーが決まった文に置き換えるので、reply は短くてよい。
 
 ## 台帳の分け方
 - checked: 相談者本人が見た、聞いた、触ったこと
