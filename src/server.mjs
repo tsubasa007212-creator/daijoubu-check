@@ -1,5 +1,5 @@
 // 相談画面のサーバー。APIキーはここだけが持つ。台帳は画面側が持ち、毎回送ってもらう。
-import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join } from "node:path";
 import { applyTurn, comparisons, newState, releasedCards } from "./engine.mjs";
@@ -14,7 +14,7 @@ const cards = ALLOW_UNCHECKED ? allCards : allCards.filter((c) => c.human_check 
 const allFlows = JSON.parse(readFileSync("data/flows.json", "utf8"));
 const flows = ALLOW_UNCHECKED ? allFlows : allFlows.filter((f) => f.human_check === "approved");
 const client = createClient();
-const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8" };
+const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".webp": "image/webp" };
 const allowed = createLimiter({ perHour: LIMIT_HOUR, perDay: LIMIT_DAY });
 
 // 手元の控えに書き、外の保存先へも送る。送信は待たないので、相談の返答を遅らせない。
@@ -121,7 +121,8 @@ function handleTurn(req, res) {
 function handleFile(req, res) {
   const pathname = new URL(req.url, "http://localhost").pathname;
   const path = pathname === "/" ? "index.html" : pathname.slice(1);
-  if (!/^[a-z0-9.]+$/.test(path)) return send(res, 404, "not found", "text/plain");
+  // 置けるのは public 直下と、挿絵の img/ だけ。
+  if (!/^(img\/)?[a-z0-9.-]+$/.test(path) || !existsSync(join("public", path))) return send(res, 404, "not found", "text/plain");
   send(res, 200, readFileSync(join("public", path)), TYPES[extname(path)] ?? "text/plain");
 }
 

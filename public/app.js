@@ -4,6 +4,17 @@ import { MESSAGES, pickLanguage } from "./i18n.js";
 const ORIGINS = ["checked", "heard", "guess", "unknown"];
 const STORE_KEY = "daijoubu-check";
 const CHECK_MARKS = ["○", "△", "×", "？"];
+// 挿絵（整備書風の線画。ChatGPTで作成、public/img）。バイクの種類と、見る場所が言葉だけでは分からない段に付ける。
+const BIKE_PICS = ["01-gyro", "02-scooter50", "03-scooter125", "04-geared", "05-unsure"];
+const STEP_PICS = {
+  "start/s2": "06-battery",
+  "start/s4": "10-oil", "oil/s3": "10-oil",
+  "start/s7": "09-plug", "any_start/s3": "09-plug",
+  "meter/s2": "07-meter-gear", "meter/s3": "07-meter-gear",
+  "speed/s7": "08-drive-belt", "speed/s8": "08-drive-belt", "speed/s9": "08-drive-belt",
+  "belt/s4": "08-drive-belt", "belt/s5": "08-drive-belt", "any_drive/s3": "08-drive-belt",
+  "warning_lamp/s2": "11-fi-lamp", "idle/s1": "11-fi-lamp",
+};
 const $ = (id) => document.getElementById(id);
 
 let lang = pickLanguage(location.search, navigator.language);
@@ -233,6 +244,9 @@ function renderNext() {
   const step = stepOf(session.step);
   $("next").hidden = !step || lang !== "ja";
   if (!step) return;
+  const pic = STEP_PICS[`${session.step.flow_id}/${step.id}`];
+  $("next-pic").hidden = !pic;
+  if (pic) $("next-pic").src = `img/${pic}.webp`;
   const [how, limit] = explain([step.how, step.cannot_tell]);
   $("next-how").textContent = how;
   $("next-source").textContent = step.source === "owner" ? t.sourceOwner : t.sourceVideo;
@@ -310,11 +324,21 @@ function renderBike() {
   // 説明は最初の画面にだけ出す。
   $("lead-block").hidden = !fresh;
   $("bike").hidden = !fresh || session.bike !== undefined;
-  $("bike-list").replaceChildren(...t.bikes.map((text, index) => chip(text, () => {
-    session.bike = index;
-    save();
-    renderAll();
-  })));
+  $("bike-list").replaceChildren(...t.bikes.map((text, index) => {
+    const button = chip(text, () => {
+      session.bike = index;
+      save();
+      renderAll();
+    });
+    button.classList.add("bike");
+    const img = document.createElement("img");
+    img.src = `img/${BIKE_PICS[index]}.webp`;
+    img.alt = "";
+    img.width = 640;
+    img.height = 640;
+    button.prepend(img);
+    return button;
+  }));
   $("bike-chosen").hidden = session.bike === undefined;
   if (session.bike !== undefined) $("bike-chosen").textContent = `${t.bikeLabel}：${t.bikes[session.bike]}`;
   $("topics").hidden = !fresh || session.bike === undefined;

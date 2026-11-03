@@ -38,6 +38,13 @@ main { max-width: 1040px; margin: auto; padding: 16px 16px calc(var(--dock) + 24
 #log .waiting { color: var(--sub-on-bench); font-size: 14px; animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .4; } }
 #bike p { margin: 0 0 8px; font-weight: 700; }
+/* バイクの種類：線画の札。紙色の絵が台の上に並ぶ */
+#bike-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.chip.bike { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 0; padding: 8px 6px 10px; font-size: 14px; line-height: 1.4; text-align: center; }
+.chip.bike img { display: block; width: 100%; max-width: 128px; height: auto; aspect-ratio: 1; border-radius: 3px; }
+/* 次に確かめることの絵：文の右に小さく */
+#next-pic { float: right; width: 104px; height: auto; margin: 0 0 8px 12px; border-radius: 3px; }
+#next::after { content: ""; display: block; clear: both; }
 
 /* 読み取った札：マスキングテープ。角は小さく、文字は濃い。overflow:hidden は付けない（左線と剥がれが切れる） */
 .tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
