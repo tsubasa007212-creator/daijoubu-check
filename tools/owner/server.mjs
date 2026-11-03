@@ -68,6 +68,27 @@ async function listGroups(refresh) {
   return { groups: cached.groups, cost: track(usage) };
 }
 
+// 答えた（または答えなくてよい）相談を一覧から消す。消した分だけ番号がずれるので、残りの番号を付け直す。
+function removeGroup(id) {
+  const done = cached.groups.find((g) => g.id === id);
+  if (!done) return;
+  const { entries } = readQuestions();
+  const texts = done.members.map((n) => entries[n]?.text).filter(Boolean);
+  writeLf(ANSWERED, JSON.stringify([...new Set([...answered(), ...texts])]));
+  const now = readQuestions().entries;
+  const used = new Set();
+  const renumber = (n) => {
+    const i = now.findIndex((e, j) => !used.has(j) && e.text === entries[n]?.text);
+    if (i >= 0) used.add(i);
+    return i;
+  };
+  cached.groups = cached.groups.filter((g) => g.id !== done.id)
+    .map((g) => ({ ...g, members: g.members.map(renumber).filter((i) => i >= 0) }))
+    .filter((g) => g.members.length > 0);
+  cached.key = createHash("sha1").update(readQuestions().raw).digest("hex");
+  writeLf(CACHE, JSON.stringify(cached));
+}
+
 function groupOf(id) {
   const group = cached.groups.find((g) => g.id === id);
   if (!group) throw Object.assign(new Error("一覧を読み直してください"), { status: 409 });
@@ -107,26 +128,7 @@ async function apply({ groupId, question, answer, draft }) {
     const check = await run("node tools/check_cards.mjs");
     const test = check.ok ? await run("npm test") : { ok: false, out: "カードの確認が落ちたので、テストは回していません。" };
     if (check.ok && test.ok) {
-      // 答えた相談は、一覧で「もう答えられるかもしれない」側へ移す。
-      const done = cached.groups.find((g) => g.id === body.groupId);
-      if (done) {
-        const { entries } = readQuestions();
-        const texts = done.members.map((n) => entries[n]?.text).filter(Boolean);
-        writeLf(ANSWERED, JSON.stringify([...new Set([...answered(), ...texts])]));
-        // 消した分だけ番号がずれるので、残りのまとまりの番号を今の並びに付け直す。
-        const now = readQuestions().entries;
-        const used = new Set();
-        const renumber = (n) => {
-          const i = now.findIndex((e, j) => !used.has(j) && e.text === entries[n]?.text);
-          if (i >= 0) used.add(i);
-          return i;
-        };
-        cached.groups = cached.groups.filter((g) => g.id !== done.id)
-          .map((g) => ({ ...g, members: g.members.map(renumber).filter((i) => i >= 0) }))
-          .filter((g) => g.members.length > 0);
-        cached.key = createHash("sha1").update(readQuestions().raw).digest("hex");
-        writeLf(CACHE, JSON.stringify(cached));
-      }
+      removeGroup(body.groupId);
       return { applied: true, check, test };
     }
     writeLf(FLOWS, flowsText);
@@ -164,6 +166,10 @@ async function route(path, body) {
     return { current, diff: diffFlow(current, body.draft?.flow), errors: checkDraft(body.draft, flows, readJson(CARDS)) };
   }
   if (path === "/api/apply") return apply(body);
+  if (path === "/api/dismiss") {
+    removeGroup(body.groupId);
+    return { groups: cached.groups, spent };
+  }
   if (path === "/api/try") {
     const group = groupOf(body.groupId);
     let cost = 0;

@@ -252,6 +252,14 @@ $("try").addEventListener("click", () => work($("try"), "答えさせていま�
 
 $("refresh").addEventListener("click", () => loadGroups(true));
 
+$("dismiss").addEventListener("click", () => work($("dismiss"), "消しています…", async () => {
+  if (!confirm("この相談を、答えずに一覧から消します。よろしいですか？")) return;
+  await post("/api/dismiss", { groupId: group.id });
+  $("ask-box").hidden = true;
+  $("draft-box").hidden = true;
+  await loadGroups(false);
+}));
+
 // 声の入力。使えないブラウザではボタンを出さない。
 if (Recognition) {
   const recognizer = new Recognition();
