@@ -1,7 +1,9 @@
 /* 整備士の作業台。濃い台の上に、答えだけが紙（作業票）で置かれる。札はテープ、差し色はテープの黄1色。 */
 :root { color-scheme: dark; --bench:#23262a; --bench-2:#2c3035; --steel:#3a3f45; --text:#ece7dc; --sub-on-bench:#b5afa3; --paper:#f4f0e6; --ink:#1d1b18; --sub:#5a544b; --rule:#d9d2c3; --tape:#e3b23c; --tape-ink:#7a5208; --checked:#8fd1a8; --checked-ink:#103a24; --heard:#9ec3ea; --heard-ink:#0f2e4d; --guess:#e8c889; --guess-ink:#4a3306; --unknown:#c9c5bd; --unknown-ink:#2a2824; --dock: 88px; }
 * { box-sizing: border-box; }
-html { background: #15171a; }
+html { background: #15171a; scroll-padding: 60px 0 calc(var(--dock) + 24px); }
+/* 読み上げ用。見えないが、答えだけを伝える */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 body { margin: 0; background: var(--bench); color: var(--text); font: 17px/1.75 "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", sans-serif; -webkit-font-smoothing: antialiased; }
 .num { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
 [hidden] { display: none !important; }
@@ -40,7 +42,7 @@ main { max-width: 1040px; margin: auto; padding: 16px 16px calc(var(--dock) + 24
 .tag { display: inline-flex; flex-direction: column; padding: 5px 12px 6px; border-radius: 3px; font-size: 14px; line-height: 1.5; animation: tagin .4s ease-out both; }
 .tag b { font-size: 11px; font-weight: 700; line-height: 1.3; letter-spacing: .08em; opacity: .85; }
 .tag b .arrow { margin: 0 4px; font-weight: 400; }
-.tag s { opacity: .6; text-decoration-thickness: 1.5px; }
+.tag s { opacity: .8; text-decoration-thickness: 1.5px; }
 .tag.checked { background: var(--checked); color: var(--checked-ink); }
 .tag.heard { background: var(--heard); color: var(--heard-ink); }
 .tag.guess { background: var(--guess); color: var(--guess-ink); }
@@ -59,14 +61,17 @@ main { max-width: 1040px; margin: auto; padding: 16px 16px calc(var(--dock) + 24
 .tag.from-guess .was { background: var(--guess); color: var(--guess-ink); }
 .tag.from-unknown .was { background: var(--unknown); color: var(--unknown-ink); }
 @keyframes peel { 0% { transform: none; opacity: 1; } 70% { opacity: 1; } 100% { transform: translate(12px, -108%) rotate(-5deg); opacity: 0; } }
+/* 前の相談の札：描き直しても出てくる動きと剥がれを繰り返さない */
+.tags.settled .tag { animation: none; }
+.tags.settled .was { display: none; }
 
 /* 答え：作業票。紙の面に黒い文字。根拠（動画の場面）と出所もこの紙の中 */
 #log .me { margin: 0 0 16px; padding: 12px 16px; background: var(--paper); color: var(--ink); border-radius: 6px; box-shadow: 0 1px 0 rgba(0,0,0,.4); }
 .me .say { margin: 0; white-space: pre-wrap; }
-.me .ask { display: block; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #cfc7b8; font-weight: 700; }
+.me .ask { display: block; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--rule); font-weight: 700; }
 .me .ev { display: flex; align-items: baseline; gap: 8px; margin: 12px 0 0; font-size: 11px; font-weight: 700; letter-spacing: .12em; color: var(--sub); }
 .me .ev::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
-.me .source { margin: 12px 0 0; padding-top: 8px; border-top: 1px dashed #cfc7b8; font-size: 13px; color: var(--sub); }
+.me .source { margin: 12px 0 0; padding-top: 8px; border-top: 1px dashed var(--rule); font-size: 13px; color: var(--sub); }
 /* 外した知らせ：作業票の先頭。テープ色の1本線と濃い黄の文字 */
 .me .move { margin: 0 0 12px; padding: 2px 12px; font-size: 13px; line-height: 1.6; color: var(--tape-ink); border-left: 3px solid var(--tape); }
 
@@ -76,7 +81,7 @@ main { max-width: 1040px; margin: auto; padding: 16px 16px calc(var(--dock) + 24
 .scene .t svg { width: 20px; height: 20px; fill: currentColor; }
 .scene .line { font-size: 15px; line-height: 1.6; }
 .scene small { display: block; margin-top: 4px; font-size: 12px; line-height: 1.5; color: var(--sub); }
-.scene.off { opacity: .65; }
+.scene.off .t svg { opacity: .5; }
 .scene.off .line { text-decoration: line-through; text-decoration-color: var(--ink); text-decoration-thickness: 2px; }
 /* 台の上に出る場面（自分で直す人へ）は台の色で */
 #repair-list .scene { margin: 0 0 12px; color: var(--text); }
@@ -121,7 +126,7 @@ button:disabled { opacity: .5; }
 .row { padding: 4px 0 4px 22px; font-size: 15px; transition: background .8s; }
 .row.moved { border-left: 3px solid var(--tape); padding-left: 19px; }
 .row small { display: block; font-size: 13px; color: var(--tape); }
-.row small.off { color: var(--sub-on-bench); text-decoration: line-through; }
+.row small.off { color: var(--sub-on-bench); }
 #player iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; margin-bottom: 12px; }
 details { margin-top: 8px; font-size: 15px; }
 summary { cursor: pointer; font-weight: 700; padding: 4px 0; }

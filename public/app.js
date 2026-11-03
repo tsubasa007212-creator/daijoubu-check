@@ -53,6 +53,8 @@ function play(videoId, time) {
   frame.allow = "autoplay; encrypted-media";
   frame.title = t.videoTitle;
   $("player").replaceChildren(frame);
+  // 1列の幅では再生欄が会話の下にあるので、見える所まで送る。
+  if (matchMedia("(max-width: 800px)").matches) $("player").scrollIntoView({ block: "start", behavior: "smooth" });
 }
 
 // 動画の場面。左に再生の印と時刻、右に言葉と車の記録。
@@ -144,20 +146,21 @@ function renderEntry(entry, index, view) {
   }
   if (entry.kind === "tags") {
     view.paper = null;
-    const list = el("div", "tags");
+    // 動く（出てくる・剥がれる）のは、答えを受けた直後の最新の札だけ。描き直しでは動かさない。
+    const list = el("div", view.fresh && index > view.lastYou ? "tags" : "tags settled");
     list.append(...entry.tags.map(tagNode));
     $("log").append(list);
     return;
   }
   // 外した知らせは、次の作業票の先頭に入れる。
   if (entry.kind === "move") {
-    view.move = entry.text;
+    view.moves.push(entry.text);
     return;
   }
   if (entry.kind === "me") {
     const paper = el("div", "me");
-    if (view.move) paper.append(el("p", "move", view.move));
-    view.move = null;
+    paper.append(...view.moves.map((text) => el("p", "move", text)));
+    view.moves = [];
     paper.append(sayNode(entry.text));
     $("log").append(paper);
     view.paper = paper;
@@ -174,7 +177,7 @@ function renderEntry(entry, index, view) {
     const scene = card?.scenes.find((s) => s.id === entry.scene_id);
     if (!scene) return;
     const line = entry.gloss || scene.line;
-    const note = entry.gloss ? `${t.otherBike} / ${t.original}: ${scene.line}` : `${t.otherBike}：${card.vehicle}`;
+    const note = entry.gloss ? `${t.otherBike} / ${t.original}: ${scene.line}` : `${t.otherBike}${lang === "ja" ? "：" : ": "}${card.vehicle}`;
     const button = sceneButton(card.video_id, scene.t, line, note);
     // 言い直しで支えを失った比較の場面は、取り下げたと見せる。
     const links = session.comparisons.filter((c) => c.card_id === entry.card_id);
@@ -190,9 +193,9 @@ function renderEntry(entry, index, view) {
   $("log").append(el("p", entry.kind, entry.text));
 }
 
-function renderLog() {
+function renderLog(fresh = false) {
   $("log").replaceChildren();
-  const view = { paper: null, move: null, count: 0 };
+  const view = { paper: null, moves: [], count: 0, fresh, lastYou: session.log.findLastIndex((entry) => entry.kind === "you") };
   session.log.forEach((entry, index) => renderEntry(entry, index, view));
   $("topics").hidden = session.log.length > 0;
   $("examples").hidden = session.log.length > 0;
@@ -252,8 +255,9 @@ function renderLedger() {
       row.textContent = statement.text;
       for (const link of session.comparisons.filter((c) => c.statement_id === statement.id)) {
         const note = document.createElement("small");
-        note.textContent = recordName(cardOf(link.card_id)) + t.comparing;
-        if (link.status === "released") note.className = "off";
+        const released = link.status === "released";
+        note.textContent = recordName(cardOf(link.card_id)) + (released ? t.notComparing : t.comparing);
+        if (released) note.className = "off";
         row.append(note);
       }
       group.append(row);
@@ -329,11 +333,15 @@ function renderCheck() {
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = mark;
-      button.setAttribute("aria-label", `${item} ${mark}`);
+      const meaning = t.marks[CHECK_MARKS.indexOf(mark)];
+      button.title = meaning;
+      button.setAttribute("aria-label", `${item} ${meaning}`);
       button.setAttribute("aria-pressed", String(checks[index] === mark));
+      // 押した行だけ更新する。作り直すとキーボードの焦点が外れて次の項目へ進めない。
       button.onclick = () => {
         checks[index] = checks[index] === mark ? undefined : mark;
-        renderCheck();
+        row.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.textContent === checks[index])));
+        $("check-send").disabled = !checks.some(Boolean);
       };
       row.append(button);
     }
@@ -390,7 +398,8 @@ async function send(message, { fromCheck = false } = {}) {
   const button = $("send");
   button.disabled = true;
   setSend(t.sending);
-  const first = !session.log.some((entry) => entry.kind === "you");
+  // 点検チェックの全部○はサーバーを通らないので、「まだ話していない」は署名の有無で見る。
+  const first = !session.signature;
   const bike = first && session.bike !== undefined ? `（${MESSAGES.ja.bikeLabel}：${MESSAGES.ja.bikes[session.bike]}）` : "";
   session.log.push({ kind: "you", text: message });
   renderLog();
@@ -398,7 +407,12 @@ async function send(message, { fromCheck = false } = {}) {
   const waiting = document.createElement("p");
   waiting.className = "waiting";
   const started = Date.now();
-  const tick = () => { waiting.textContent = `${t.waiting}… ${Math.round((Date.now() - started) / 1000)}${t.seconds}`; };
+  waiting.setAttribute("aria-hidden", "true");
+  // 秒は3秒を超えてから出す。「0秒」は目を引くだけで意味がない。
+  const tick = () => {
+    const s = Math.round((Date.now() - started) / 1000);
+    waiting.textContent = s < 3 ? `${t.waiting}…` : `${t.waiting}… ${s}${t.seconds}`;
+  };
   tick();
   const timer = setInterval(tick, 1000);
   $("log").append(waiting);
@@ -441,7 +455,7 @@ async function send(message, { fromCheck = false } = {}) {
     // 言い直しで支えを失った比較は、会話の中でも外したと見せる。
     const stillActive = new Set(data.comparisons.filter((c) => c.status === "active").map((c) => c.card_id));
     for (const id of wasActive) {
-      if (!stillActive.has(id)) session.log.push({ kind: "move", text: `${t.released}「${recordName(cardOf(id))}」` });
+      if (!stillActive.has(id)) session.log.push({ kind: "move", text: lang === "ja" ? `${t.released}「${recordName(cardOf(id))}」` : t.released });
     }
     // 点検の結果で止まった時は、結果を残せる先を添える。
     const noGuide = fromCheck && data.turn.no_evidence ? `\n${t.checkNoGuide}` : "";
@@ -454,7 +468,8 @@ async function send(message, { fromCheck = false } = {}) {
     data.turn.citations.forEach((cite) => session.log.push({ kind: "cite", ...cite }));
     session.quick = data.turn.no_evidence || data.turn.topics ? "topics" : data.turn.ask || data.turn.step ? "unsure" : null;
     save();
-    renderLog();
+    $("announce").textContent = data.turn.reply;
+    renderLog(true);
     renderLedger();
     renderRepair();
     renderNext();
@@ -465,14 +480,18 @@ async function send(message, { fromCheck = false } = {}) {
     $("input").value = message;
     renderLog();
     session.log.push({ kind: "me", text: t[error.message] ?? t.failed });
+    $("announce").textContent = t[error.message] ?? t.failed;
     renderLog();
     session.log.pop();
   } finally {
     clearInterval(timer);
     waiting.remove();
-    sending = false;
-    button.disabled = false;
-    setSend(t.send);
+    // やり直しの後に古い応答が返っても、新しい相談の送り待ちを解かない。
+    if (current === turnId) {
+      sending = false;
+      button.disabled = false;
+      setSend(t.send);
+    }
   }
 }
 
@@ -482,8 +501,11 @@ $("form").addEventListener("submit", (event) => {
   if (message) send(message);
 });
 
+// Enter で送る。変換中の Enter は拾わない。Shift+Enter は改行。
 $("input").addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) $("form").requestSubmit();
+  if (event.key !== "Enter" || event.isComposing || event.keyCode === 229 || event.shiftKey) return;
+  event.preventDefault();
+  $("form").requestSubmit();
 });
 
 function micStatus(text, on = false) {
@@ -614,9 +636,15 @@ $("copy").addEventListener("click", async () => {
   }
 });
 
-const data = await (await fetch("/api/cards")).json();
-cards = data.cards;
-flows = data.flows;
+// 台帳が取れなくても画面の言葉は出す。送ると「うまくいきませんでした」が出る。
+let data = { cards: [], flows: [], draft: false };
+try {
+  data = await (await fetch("/api/cards")).json();
+} catch { /* 台帳なしで続ける */ }
+cards = data.cards ?? [];
+flows = data.flows ?? [];
 $("draft").hidden = !data.draft;
 session = load();
+// 下の固定欄の実高（マイクの案内が出ると伸びる）に、本文の下の余白を合わせる。
+new ResizeObserver(() => document.documentElement.style.setProperty("--dock", `${$("form").offsetHeight}px`)).observe($("form"));
 renderAll();
