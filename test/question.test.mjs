@@ -145,6 +145,18 @@ test("受け側が返事をしなくても、相談の返答は待たずに返�
   });
 });
 
+test("壊れたJSONの本文は400で返す", async () => {
+  await withServer(() => {}, async ({ port }) => {
+    const response = await fetch(`http://127.0.0.1:${port}/api/turn`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{",
+      signal: AbortSignal.timeout(8000),
+    });
+    assert.equal(response.status, 400);
+  });
+});
+
 test("外の宛先へは https でしか送らない", async () => {
   let called = false;
   const post = async () => { called = true; return { ok: true }; };

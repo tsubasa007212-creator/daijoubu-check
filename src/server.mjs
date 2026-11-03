@@ -61,8 +61,14 @@ async function answer(state, message, lang, previousReply) {
   return stepOnly ?? stop(kept);
 }
 
+// 壊れたJSONは送り手の誤りなので、400で返す。
 function readRequest(body) {
-  const parsed = JSON.parse(body);
+  let parsed;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return null;
+  }
   if (!parsed || typeof parsed !== "object") return null;
   const { message, state, signature, lang, previousReply } = parsed;
   if (typeof message !== "string" || !message.trim() || message.length > MAX_MESSAGE) return null;

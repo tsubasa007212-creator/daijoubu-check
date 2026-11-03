@@ -14,11 +14,12 @@ let session = emptySession();
 let previous = {};
 let sending = false;
 let turnId = 0;
-let troubleEdited = false;
 let checks = [];
+// 買った所は番号で持ち、言語を変えても選んだものを保つ。
+let bought = 0;
 
 function emptySession() {
-  return { state: { statements: [], links: [] }, signature: null, comparisons: [], log: [], lastReply: "" };
+  return { state: { statements: [], links: [] }, signature: null, comparisons: [], log: [], lastReply: "", quick: null };
 }
 
 // 保存できない環境でも相談は続ける。
@@ -82,8 +83,25 @@ function renderEntry(entry) {
 function renderLog() {
   $("log").replaceChildren();
   session.log.forEach(renderEntry);
+  $("topics").hidden = session.log.length > 0;
   $("examples").hidden = session.log.length > 0;
   $("log").lastElementChild?.scrollIntoView({ block: "nearest" });
+}
+
+// 難しい言葉は、この欄の中で最初の1回だけ「語（説明）」にする。「」の中は動画の言葉なので触らない。
+// カタカナ語の途中には当てない（アクセルの「セル」など）。
+function explain(texts) {
+  const glossary = t.glossary ?? {};
+  const terms = Object.keys(glossary).sort((a, b) => b.length - a.length);
+  if (terms.length === 0) return texts;
+  const words = terms.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  const pattern = new RegExp(`「[^」]*」|(?<![ァ-ヶー])(?:${words})(?![ァ-ヶー])`, "g");
+  const used = new Set();
+  return texts.map((text) => text.replace(pattern, (word) => {
+    if (word.startsWith("「") || used.has(word)) return word;
+    used.add(word);
+    return `${word}（${glossary[word]}）`;
+  }));
 }
 
 // 流れの本文は日本語だけなので、他の言語では返答の質問に任せる。
@@ -91,10 +109,11 @@ function renderNext() {
   const step = stepOf(session.step);
   $("next").hidden = !step || lang !== "ja";
   if (!step) return;
-  $("next-how").textContent = step.how;
+  const [how, limit] = explain([step.how, step.cannot_tell]);
+  $("next-how").textContent = how;
   $("next-source").textContent = step.source === "owner" ? t.sourceOwner : t.sourceVideo;
   $("next-needs").textContent = `${t.needs}：${step.needs}`;
-  $("next-limit").textContent = `${t.cannotTell}：${step.cannot_tell}`;
+  $("next-limit").textContent = `${t.cannotTell}：${limit}`;
 }
 
 function renderLedger() {
@@ -131,7 +150,6 @@ function renderLedger() {
     root.append(group);
   }
   previous = Object.fromEntries(statements.map((s) => [s.id, s.origin]));
-  if (!troubleEdited) $("f-trouble").value = statements.filter((s) => s.origin === "checked").map((s) => s.text).join("\n");
 }
 
 // 今も比べている記録の作業場面だけを出す。動画の中の注意はそのまま添え、足さない。
@@ -160,10 +178,12 @@ function chip(text, onClick) {
   return button;
 }
 
-// 止まった時は、今答えられる相談を出して行き止まりにしない。
-function renderChips(showUnsure, showTopics = false) {
-  $("examples").replaceChildren(...t.examples.map((text) => chip(text, () => send(text))));
-  const quick = showTopics ? t.topics : showUnsure ? [t.unsure] : [];
+// 最初は話題と例を出す。止まった時は、今答えられる相談を出して行き止まりにしない。
+function renderChips() {
+  $("topics").replaceChildren(...t.topics.map((text) => chip(text, () => send(text))));
+  // 最初は話題だけを出す。例文は入力欄の見本に任せる。
+  $("examples").replaceChildren();
+  const quick = session.quick === "topics" ? t.topics : session.quick === "unsure" ? [t.unsure] : [];
   $("quick").replaceChildren(...quick.map((text) => chip(text, () => send(text))));
 }
 
@@ -200,20 +220,31 @@ function renderTexts() {
   document.querySelectorAll("[data-t]").forEach((node) => { node.textContent = t[node.dataset.t]; });
   $("input").placeholder = t.placeholder;
   $("f-where").replaceChildren(...t.bought.map((text) => new Option(text)));
+  $("f-where").selectedIndex = bought;
   $("lang").value = lang;
 }
 
-function renderAll(showUnsure = false) {
+function renderAll() {
   renderTexts();
   renderCheck();
   renderLog();
   renderLedger();
   renderRepair();
   renderNext();
-  renderChips(showUnsure);
+  renderChips();
 }
 
-async function send(message) {
+// 店に見せる1枚は、作る時の台帳から組み直す。推測は入れず、本人の書き足しは未確認として分ける。
+function sheetText() {
+  const rows = (origin) => session.state.statements.filter((s) => s.origin === origin).map((s) => s.text);
+  const notes = $("f-trouble").value.split("\n").map((line) => line.trim()).filter(Boolean);
+  const values = [$("f-when").value, $("f-what").value, t.bought[bought], rows("checked"), rows("heard"), notes];
+  return t.sheetLines.map((label, i) => (Array.isArray(values[i])
+    ? [`${label}:`, ...values[i].map((v) => `・${v}`)].join("\n")
+    : `${label}: ${values[i]}`)).join("\n");
+}
+
+async function send(message, { fromCheck = false } = {}) {
   if (sending) return;
   sending = true;
   turnId += 1;
@@ -223,7 +254,8 @@ async function send(message) {
   button.textContent = t.sending;
   session.log.push({ kind: "you", text: message });
   renderLog();
-  $("quick").replaceChildren();
+  session.quick = null;
+  renderChips();
   $("input").value = "";
   try {
     const response = await fetch("/api/turn", {
@@ -251,16 +283,19 @@ async function send(message) {
         session.log.push({ kind: "move", text: `「${statement.text}」${t.moved}：${t[statement.origin]}` });
       }
     }
-    session.log.push({ kind: "me", text: data.turn.reply });
+    // 点検の結果で止まった時は、結果を残せる先を添える。
+    const noGuide = fromCheck && data.turn.no_evidence ? `\n${t.checkNoGuide}` : "";
+    session.log.push({ kind: "me", text: data.turn.reply + noGuide });
     const step = stepOf(session.step);
     if (step) session.log.push({ kind: "source", text: step.source === "owner" ? t.sourceOwner : t.sourceVideo });
     data.turn.citations.forEach((cite) => session.log.push({ kind: "cite", ...cite }));
+    session.quick = data.turn.no_evidence || data.turn.topics ? "topics" : data.turn.ask || data.turn.step ? "unsure" : null;
     save();
     renderLog();
     renderLedger();
     renderRepair();
     renderNext();
-    renderChips(Boolean(data.turn.ask || data.turn.step), Boolean(data.turn.no_evidence || data.turn.topics));
+    renderChips();
   } catch (error) {
     if (current !== turnId) return;
     session.log.pop();
@@ -286,29 +321,35 @@ $("input").addEventListener("keydown", (event) => {
   if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) $("form").requestSubmit();
 });
 
+// 項目の文に「、」があるので、結果は「／」でつなぐ。全部○の時も、何を○にしたかを残す。
 $("check-send").addEventListener("click", () => {
   const results = t.checkItems.flatMap((item, index) => (checks[index] ? [`${item} ${checks[index]}`] : []));
+  const message = `${t.checkResult}：${results.join("／")}`;
   $("check").open = false;
   if (checks.every((mark) => !mark || mark === "○")) {
-    session.log.push({ kind: "me", text: t.checkAllGood });
+    session.log.push({ kind: "you", text: message }, { kind: "me", text: t.checkAllGood });
     save();
     renderLog();
     return;
   }
-  send(`${t.checkResult}：${results.join("、")}`);
+  send(message, { fromCheck: true });
 });
 
-$("f-trouble").addEventListener("input", () => { troubleEdited = true; });
+$("f-where").addEventListener("change", (event) => { bought = event.target.selectedIndex; });
 
+// 別の車の相談へ移った時に混ざらないよう、1枚の欄も空に戻す。
 $("restart").addEventListener("click", () => {
   turnId += 1;
   sending = false;
   $("send").disabled = false;
   $("send").textContent = t.send;
-  troubleEdited = false;
   session = emptySession();
   previous = {};
   checks = [];
+  bought = 0;
+  for (const id of ["f-when", "f-what", "f-trouble", "sheet-text"]) $(id).value = "";
+  $("sheet-text").hidden = true;
+  $("copy").textContent = t.make;
   $("player").replaceChildren();
   save();
   renderAll();
@@ -321,8 +362,7 @@ $("lang").addEventListener("change", (event) => {
 });
 
 $("copy").addEventListener("click", async () => {
-  const values = [$("f-when").value, $("f-what").value, $("f-where").value, $("f-trouble").value];
-  const text = t.sheetLines.map((label, i) => `${label}: ${values[i]}`).join("\n");
+  const text = sheetText();
   const output = $("sheet-text");
   output.value = text;
   output.hidden = false;

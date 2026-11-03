@@ -4,18 +4,24 @@ const ASSERTIONS = [
   /大丈夫です/, /問題(ありません|ない|なさ)/, /安全です/, /壊れています/, /原因は.{0,30}(です|だ)/,
   /交換(して)?(ください|しましょう)/, /修理(して)?(ください|しましょう)/, /持ち込み(ましょう|ください)/,
   /見てもら(って|い)(ください|ましょう)/, /見てもらう(こと|のが|べき)/, /お店で見てもらい/,
-  /平気/, /心配(いり|は)ません/, /(走|乗)れます/,
+  /平気/, /心配(いり|は)ません/, /(走|乗)れます/, /大丈夫だよ/, /大丈夫でしょう(?!か)/,
   /\b(it|your bike|the bike|this)( is|'s) (fine|ok|okay|safe)\b/i, /\bno problem\b/i, /\bis broken\b/i,
   /\bthe cause is\b/i, /\b(please )?(replace|repair) (it|the)\b/i, /\byou should\b/i, /\btake it to\b/i,
 ];
+// 新しく走って確かめるよう頼む文。否定の文に混ざっていても止める。
+const RIDE_REQUESTS = [/(走|乗)って.{0,30}(確かめ|試し)て(ください|みて|ほしい|もらえ|。|$)/];
 const MAX_REPLY = 600;
 // 「大丈夫です」とは言えません、のような否定は言い切りではない。
 const NEGATED = /とは(言え|言い切れ|限ら|決め)|かどうか|か(は|も)(分かり|言え)|cannot say|can't say|not sure/i;
 
+// 「〜とは言えませんが、問題ありません」を否定の文として通さないよう、「が、」「けど、」でも分ける。
 function assertions(reply) {
   const plain = reply.replace(/[’‘]/g, "'").replace(/「[^」]*」/g, "");
-  const sentences = plain.split(/(?<=[。．.!?！？\n])/);
-  return sentences.filter((s) => !NEGATED.test(s)).flatMap((s) => ASSERTIONS.filter((p) => p.test(s)));
+  const sentences = plain.split(/(?<=[。．.!?！？\n]|が、|けど、)/);
+  return [
+    ...sentences.filter((s) => !NEGATED.test(s)).flatMap((s) => ASSERTIONS.filter((p) => p.test(s))),
+    ...sentences.flatMap((s) => RIDE_REQUESTS.filter((p) => p.test(s))),
+  ];
 }
 
 export function checkTurn(turn, cards, { requireHumanCheck = true, released = [], statementIds = null, flows = [] } = {}) {

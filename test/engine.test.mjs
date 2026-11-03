@@ -104,6 +104,22 @@ test("言い切りでない否定の文は止めない", () => {
   assert.deepEqual(checkTurn(turn, cards, { requireHumanCheck: false }), []);
 });
 
+test("くだけた言い切りと、走って確かめる依頼を止める", () => {
+  const replies = ["大丈夫だよ。", "それなら大丈夫でしょう。", "乗って、何キロ出るか確かめてください。", "一度走って試してみてください。",
+    "安全とは言えませんが、問題ありません。", "大丈夫かどうかは分からないけど、問題ないです。"];
+  for (const reply of replies) {
+    const turn = { reply, citations: [{ card_id: "lov-feel", scene_id: "feel" }] };
+    assert.ok(checkTurn(turn, cards, { requireHumanCheck: false }).includes("assertion in reply"), reply);
+  }
+});
+
+test("確かめていないと伝える文と、聞き返しは止めない", () => {
+  for (const reply of ["乗っていいかは、まだ確かめていません。", "大丈夫でしょうか、と気になりますよね。", "これまで乗った時、速度は何キロくらい出ていましたか。"]) {
+    const turn = { reply, citations: [{ card_id: "lov-feel", scene_id: "feel" }] };
+    assert.deepEqual(checkTurn(turn, cards, { requireHumanCheck: false }), [], reply);
+  }
+});
+
 test("言い換えと文中の断定を止める", () => {
   for (const reply of ["原因はベルトです。別の車の記録ではそうでした。", "走っても平気そうです。", "It\u2019s fine.", "You should take it to a shop."]) {
     const turn = { reply, citations: [{ card_id: "lov-feel", scene_id: "feel" }] };
