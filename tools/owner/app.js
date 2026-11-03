@@ -30,7 +30,10 @@ async function work(button, label, task) {
   if (busy) return;
   busy = true;
   const before = button.textContent;
-  button.textContent = label;
+  const started = Date.now();
+  const tick = () => { button.textContent = `${label} ${Math.round((Date.now() - started) / 1000)}秒`; };
+  tick();
+  const timer = setInterval(tick, 1000);
   document.querySelectorAll("button").forEach((b) => { b.disabled = true; });
   try {
     await task();
@@ -38,6 +41,7 @@ async function work(button, label, task) {
     alert(error.message);
   } finally {
     busy = false;
+    clearInterval(timer);
     button.textContent = before;
     document.querySelectorAll("button").forEach((b) => { b.disabled = false; });
     $("apply").disabled = !draft || $("errors").children.length > 0;
@@ -60,9 +64,12 @@ async function loadGroups(refresh) {
   $("list-status").textContent = "まとめています（Claude）…";
   try {
     const data = await post("/api/questions", { refresh });
-    const bike = data.groups.filter((g) => g.kind === "bike");
+    const bike = data.groups.filter((g) => g.kind === "bike" && !g.covered_by);
+    const covered = data.groups.filter((g) => g.kind === "bike" && g.covered_by);
     const others = data.groups.filter((g) => g.kind !== "bike");
     $("groups").replaceChildren(...bike.map(groupItem));
+    $("covered-groups").replaceChildren(...covered.map(groupItem));
+    $("covered").hidden = covered.length === 0;
     $("other-groups").replaceChildren(...others.map(groupItem));
     $("others").hidden = others.length === 0;
     const total = data.groups.reduce((n, g) => n + g.count, 0);
@@ -97,14 +104,27 @@ function showDraft(data) {
   $("decision").textContent = `${isNew ? "新しい流れ" : "今の流れに足す"}「${draft.flow.id}：${draft.flow.symptom}」（車種：${draft.flow.scope}）。${draft.reason}`;
   $("conflicts").replaceChildren(...(draft.conflicts.length ? [el("p", "今ある流れと食い違う所", "label warn"),
     ...draft.conflicts.map((c) => el("p", `${c.flow_id}/${c.step_id}　今：${c.now}　／　大谷さん：${c.owner_said}`, "conflict"))] : []));
-  $("unsaid").replaceChildren(...(draft.unsaid.length ? [el("p", "言っていないので「まだ確かめていない」にした所", "label"),
-    el("p", draft.unsaid.join("、"), "sub")] : []));
+  $("unsaid").replaceChildren(...(draft.unsaid.length ? [el("p", "まだ確かめていないこと（アプリは「専門家に見てもらうほうが良いです」と言います）", "label"),
+    el("ul", null, "unsaid")] : []));
+  if (draft.unsaid.length) $("unsaid").lastChild.append(...draft.unsaid.map((u) => el("li", u)));
+  renderPlain(data.current);
   $("words").textContent = original;
   renderDiff(data.diff);
   renderEdit(data.current);
   renderErrors(data.errors);
   $("draft-box").hidden = false;
   $("draft-box").scrollIntoView({ behavior: "smooth" });
+}
+
+// 大谷さんが確かめるのは、アプリが実際に聞く文と伝える文だけにする。細かい形は「くわしく」に回す。
+function renderPlain(current) {
+  const known = new Set((current?.steps ?? []).map((s) => s.id));
+  const added = draft.flow.steps.filter((s) => !known.has(s.id));
+  $("plain").replaceChildren(...added.map((step) => {
+    const box = el("div", null, "plain");
+    box.append(el("p", "アプリが聞くこと", "label"), el("p", step.ask, "big"), el("p", "アプリが伝えること", "label"), el("p", step.how, "big"));
+    return box;
+  }));
 }
 
 function show(value) {

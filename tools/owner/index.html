@@ -21,6 +21,10 @@
     <p class="sub">止まった相談を、同じ意味ごとにまとめ、多い順に並べています。名前・電話・ナンバーらしきものは伏せています。</p>
     <p id="list-status" class="sub"></p>
     <ol id="groups"></ol>
+    <details id="covered" hidden>
+      <summary>もう答えられるかもしれない相談</summary>
+      <ol id="covered-groups"></ol>
+    </details>
     <details id="others" hidden>
       <summary>答えなくてよい相談（バイクと関係ない話、指示を変えさせようとする文）</summary>
       <ol id="other-groups"></ol>
@@ -43,22 +47,26 @@
   </section>
 
   <section id="draft-box" hidden>
-    <h2>下書き</h2>
-    <p id="decision"></p>
-    <div id="conflicts"></div>
+    <h2>アプリに入る文</h2>
+    <div id="plain"></div>
     <div id="unsaid"></div>
-    <div class="cols">
-      <div><p class="label">大谷さんの元の言葉</p><p id="words" class="words"></p></div>
-      <div><p class="label">今の流れとの違い</p><div id="diff"></div></div>
-    </div>
-    <p class="label">直す所（新しく足す確認だけ直せます）</p>
-    <div id="edit"></div>
+    <div id="conflicts"></div>
     <ul id="errors"></ul>
     <div class="row">
-      <button id="recheck" class="plain" type="button">直した所で差分を見直す</button>
       <button id="cancel" type="button">やめる</button>
       <button id="apply" class="main" type="button">反映する</button>
     </div>
+    <details id="more">
+      <summary>くわしく見る・直す</summary>
+      <p id="decision" class="sub"></p>
+      <div class="cols">
+        <div><p class="label">大谷さんの元の言葉</p><p id="words" class="words"></p></div>
+        <div><p class="label">今の流れとの違い</p><div id="diff"></div></div>
+      </div>
+      <p class="label">直す所（新しく足す確認だけ直せます）</p>
+      <div id="edit"></div>
+      <button id="recheck" class="plain" type="button">直した所で見直す</button>
+    </details>
   </section>
 
   <section id="result-box" hidden>

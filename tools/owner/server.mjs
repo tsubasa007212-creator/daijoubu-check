@@ -21,7 +21,8 @@ const QUESTIONS = join(ROOT, "private/questions.jsonl");
 const MEMO = join(ROOT, "private/大谷さんの確認メモ.md");
 const client = createClient();
 let spent = 0;
-let cached = { key: null, groups: [] };
+const CACHE = join(ROOT, "private/owner_groups.json");
+let cached = existsSync(CACHE) ? JSON.parse(readFileSync(CACHE, "utf8")) : { key: null, groups: [] };
 let applying = false;
 
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
@@ -57,6 +58,7 @@ async function listGroups(refresh) {
   const flows = readJson(FLOWS);
   const { result, usage } = await groupQuestions(client, { messages: entries.map((e) => e.text), flows });
   cached = { key, groups: checkGroups(result, entries, flows.map((f) => f.id)) };
+  writeLf(CACHE, JSON.stringify(cached));
   return { groups: cached.groups, cost: track(usage) };
 }
 
@@ -115,6 +117,7 @@ async function route(path, body) {
   if (path === "/api/questions") return listGroups(Boolean(body.refresh));
   if (path === "/api/ask") {
     const group = groupOf(body.groupId);
+    if (group.question) return { question: group.question, related_flow_id: group.covered_by, cost: 0, spent };
     const { result, usage } = await makeQuestion(client, { group, flows: readJson(FLOWS) });
     return { ...result, cost: track(usage), spent };
   }

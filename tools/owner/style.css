@@ -32,6 +32,12 @@ textarea, input { width: 100%; padding: 10px; border: 1px solid var(--line); bor
 .diff.removed { background: var(--del); }
 .before { color: var(--sub); white-space: pre-wrap; }
 .after { white-space: pre-wrap; }
+.plain { padding: 12px 16px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 4px; background: #fff; }
+.plain .label { margin-top: 0; color: var(--sub); font-size: 14px; }
+.big { font-size: 19px; }
+ul.unsaid { margin: 0; padding-left: 1.2em; color: var(--sub); }
+#more { margin-top: 16px; }
+#more summary { cursor: pointer; color: var(--sub); }
 .conflict { padding: 8px 12px; border-left: 3px solid var(--accent); background: #fff; }
 .edit-step { padding: 8px 12px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 4px; background: #fff; }
 pre { white-space: pre-wrap; font-size: 13px; background: #fff; padding: 8px; border: 1px solid var(--line); overflow-x: auto; }

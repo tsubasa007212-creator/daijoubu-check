@@ -33,10 +33,10 @@ export function checkGroups(raw, entries, flowIds = []) {
       members.push(n);
     }
     if (members.length === 0 || typeof g.title !== "string" || !g.title.trim()) continue;
-    groups.push({ title: g.title.trim(), kind: kinds.has(g.kind) ? g.kind : "bike", members, covered_by: flowIds.includes(g.covered_by) ? g.covered_by : null });
+    groups.push({ title: g.title.trim(), kind: kinds.has(g.kind) ? g.kind : "bike", members, covered_by: flowIds.includes(g.covered_by) ? g.covered_by : null, question: typeof g.question === "string" ? g.question.trim() : "" });
   }
   entries.forEach((e, n) => {
-    if (!seen.has(n)) groups.push({ title: e.text.slice(0, 40), kind: "bike", members: [n], covered_by: null });
+    if (!seen.has(n)) groups.push({ title: e.text.slice(0, 40), kind: "bike", members: [n], covered_by: null, question: "" });
   });
   const order = { bike: 0, not_bike: 1, attack: 2 };
   return groups
