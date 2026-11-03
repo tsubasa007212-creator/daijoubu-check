@@ -188,7 +188,8 @@ function renderEntry(entry, index, view) {
     return;
   }
   if (entry.kind === "source") {
-    const source = el("p", "source", entry.text);
+    // 出所は画面の言語で出す（言語を切り替えても古い言葉が残らないよう、種類を持つ）。
+    const source = el("p", "source", entry.key ? (entry.key === "owner" ? t.sourceOwner : t.sourceVideo) : entry.text);
     if (view.paper) view.paper.append(source);
     else $("log").append(source);
     return;
@@ -496,9 +497,10 @@ async function send(message, { fromCheck = false } = {}) {
     session.log.push({ kind: "me", text: data.turn.reply + noGuide });
     const step = stepOf(session.step);
     // 出所は変わった時だけ出して、毎回同じ文が並ばないようにする。
-    const source = step ? (step.source === "owner" ? t.sourceOwner : t.sourceVideo) : null;
-    const lastSource = session.log.findLast((entry) => entry.kind === "source")?.text;
-    if (source && source !== lastSource) session.log.push({ kind: "source", text: source });
+    const sourceKey = step ? (step.source === "owner" ? "owner" : "video") : null;
+    const last = session.log.findLast((entry) => entry.kind === "source");
+    const lastKey = last?.key ?? (last?.text === MESSAGES.ja.sourceOwner || last?.text === MESSAGES.en.sourceOwner ? "owner" : last ? "video" : null);
+    if (sourceKey && sourceKey !== lastKey) session.log.push({ kind: "source", key: sourceKey, text: sourceKey === "owner" ? t.sourceOwner : t.sourceVideo });
     data.turn.citations.forEach((cite) => session.log.push({ kind: "cite", ...cite }));
     session.quick = data.turn.no_evidence || data.turn.topics ? "topics" : data.turn.ask || data.turn.step ? "unsure" : null;
     save();

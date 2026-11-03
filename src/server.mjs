@@ -37,7 +37,7 @@ async function answer(state, message, lang, previousReply) {
   let stepOnly = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      const { turn } = await readTurn(client, { cards, flows, state, message, previousReply, hint });
+      const { turn } = await readTurn(client, { cards, flows, state, message, previousReply, hint, lang });
       const next = trimState(applyTurn(state, turn));
       const fixed = fixedTurn(turn, lang, FIXED_REPLY);
       if (fixed) return { state: trimState(applyTurn(state, { ...turn, links: [] })), turn: fixed };

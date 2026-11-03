@@ -91,8 +91,8 @@ link は「今この記録と比べている」という意味で、部品が同
 カードの owner_note は大谷の確認で、字幕より優先する。
 
 ## 言語
-reply、added の text、gloss は相談者が使っている言語で書く。英語では "you should"、"take it to"、"it is fine/safe"、"please replace/repair" を使わず、"It is best to ..."、"A mechanic can check ..." のように言う。カードは日本語のまま読み、内容を足さずに訳す。
-相談者が日本語なら gloss は空にする。他の言語なら gloss に、引いた場面の言葉の訳を入れる。
+reply、added の text、gloss は、入力の language で書く（"en" なら、相談者が日本語で書いていても英語。"ja" なら日本語）。英語では "you should"、"take it to"、"it is fine/safe"、"please replace/repair" を使わず、"It is best to ..."、"A mechanic can check ..." のように言う。カードは日本語のまま読み、内容を足さずに訳す。
+language が "ja" なら gloss は空にする。他の言語なら gloss に、引いた場面の言葉の訳を入れる。
 
 ## 点検の結果
 「点検の結果：エンジンはすぐかかる？ ○／ブレーキを握ると、いつも通り止まれる？ × 」の形は、相談者が自分で見た結果。○は added に入れず、△と×を checked に、？を unknown に入れる。×を先に扱い、点検の流れへつなぐ。「大丈夫です」とは言わない。
