@@ -3,6 +3,7 @@ import { MESSAGES, pickLanguage } from "./i18n.js";
 
 const ORIGINS = ["checked", "heard", "guess", "unknown"];
 const STORE_KEY = "daijoubu-check";
+const CHECK_MARKS = ["○", "△", "×", "？"];
 const $ = (id) => document.getElementById(id);
 
 let lang = pickLanguage(location.search, navigator.language);
@@ -14,6 +15,7 @@ let previous = {};
 let sending = false;
 let turnId = 0;
 let troubleEdited = false;
+let checks = [];
 
 function emptySession() {
   return { state: { statements: [], links: [] }, signature: null, comparisons: [], log: [], lastReply: "" };
@@ -163,6 +165,33 @@ function renderChips(showUnsure) {
   $("quick").replaceChildren(...(showUnsure ? [chip(t.unsure, () => send(t.unsure))] : []));
 }
 
+// 点検の答えは画面だけで持ち、相談する時に普段の発言と同じ形で送る。
+function renderCheck() {
+  const list = $("check-list");
+  list.replaceChildren();
+  t.checkItems.forEach((item, index) => {
+    const row = document.createElement("div");
+    row.className = "check-row";
+    const name = document.createElement("span");
+    name.textContent = item;
+    row.append(name);
+    for (const mark of CHECK_MARKS) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = mark;
+      button.setAttribute("aria-label", `${item} ${mark}`);
+      button.setAttribute("aria-pressed", String(checks[index] === mark));
+      button.onclick = () => {
+        checks[index] = checks[index] === mark ? undefined : mark;
+        renderCheck();
+      };
+      row.append(button);
+    }
+    list.append(row);
+  });
+  $("check-send").disabled = !checks.some(Boolean);
+}
+
 function renderTexts() {
   document.documentElement.lang = lang;
   document.title = t.title;
@@ -174,6 +203,7 @@ function renderTexts() {
 
 function renderAll(showUnsure = false) {
   renderTexts();
+  renderCheck();
   renderLog();
   renderLedger();
   renderRepair();
@@ -254,6 +284,18 @@ $("input").addEventListener("keydown", (event) => {
   if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) $("form").requestSubmit();
 });
 
+$("check-send").addEventListener("click", () => {
+  const results = t.checkItems.flatMap((item, index) => (checks[index] ? [`${item} ${checks[index]}`] : []));
+  $("check").open = false;
+  if (checks.every((mark) => !mark || mark === "○")) {
+    session.log.push({ kind: "me", text: t.checkAllGood });
+    save();
+    renderLog();
+    return;
+  }
+  send(`${t.checkResult}：${results.join("、")}`);
+});
+
 $("f-trouble").addEventListener("input", () => { troubleEdited = true; });
 
 $("restart").addEventListener("click", () => {
@@ -264,6 +306,7 @@ $("restart").addEventListener("click", () => {
   troubleEdited = false;
   session = emptySession();
   previous = {};
+  checks = [];
   $("player").replaceChildren();
   save();
   renderAll();

@@ -15,6 +15,12 @@ header p { margin: 2px 0 0; color: var(--sub); }
 .notice #draft { color: var(--accent); }
 [hidden] { display: none !important; }
 main { max-width: 1040px; margin: auto; padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; }
+#check { margin-bottom: 12px; }
+.check-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.check-row span { flex: 1; }
+.check-row button { width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 4px; background: #fff; font: inherit; color: inherit; cursor: pointer; }
+.check-row button[aria-pressed=true] { background: var(--ink); color: #fff; }
+#check-send { margin-top: 12px; padding: 10px 16px; border: 0; border-radius: 4px; background: var(--ink); color: #fff; font: inherit; cursor: pointer; }
 #log p { margin: 0 0 12px; white-space: pre-wrap; }
 #log .you { padding: 8px 12px; background: #efeadf; border-radius: 4px; }
 #log .source { margin-top: -8px; color: var(--sub); font-size: 12px; }
