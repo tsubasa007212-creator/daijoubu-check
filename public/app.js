@@ -113,7 +113,7 @@ function renderNext() {
   $("next-how").textContent = how;
   $("next-source").textContent = step.source === "owner" ? t.sourceOwner : t.sourceVideo;
   $("next-needs").textContent = `${t.needs}：${step.needs}`;
-  $("next-limit").textContent = `${t.cannotTell}：${limit}`;
+  $("next-limit").textContent = limit;
 }
 
 function renderLedger() {
@@ -179,6 +179,20 @@ function chip(text, onClick) {
 }
 
 // 最初は話題と例を出す。止まった時は、今答えられる相談を出して行き止まりにしない。
+// 答えの多くは車種で変わるので、最初に種類を選んでもらう。分からないも選べる。
+function renderBike() {
+  const fresh = session.log.length === 0;
+  $("bike").hidden = !fresh || session.bike !== undefined;
+  $("bike-list").replaceChildren(...t.bikes.map((text, index) => chip(text, () => {
+    session.bike = index;
+    save();
+    renderAll();
+  })));
+  $("bike-chosen").hidden = session.bike === undefined;
+  if (session.bike !== undefined) $("bike-chosen").textContent = `${t.bikeLabel}：${t.bikes[session.bike]}`;
+  $("topics").hidden = !fresh || session.bike === undefined;
+}
+
 function renderChips() {
   $("topics").replaceChildren(...t.topics.map((text) => chip(text, () => send(text))));
   // 最初は話題だけを出す。例文は入力欄の見本に任せる。
@@ -232,6 +246,7 @@ function renderAll() {
   renderRepair();
   renderNext();
   renderChips();
+  renderBike();
 }
 
 // 店に見せる1枚は、作る時の台帳から組み直す。推測は入れず、本人の書き足しは未確認として分ける。
@@ -252,8 +267,19 @@ async function send(message, { fromCheck = false } = {}) {
   const button = $("send");
   button.disabled = true;
   button.textContent = t.sending;
+  const first = !session.log.some((entry) => entry.kind === "you");
+  const bike = first && session.bike !== undefined ? `（${MESSAGES.ja.bikeLabel}：${MESSAGES.ja.bikes[session.bike]}）` : "";
   session.log.push({ kind: "you", text: message });
   renderLog();
+  renderBike();
+  const waiting = document.createElement("p");
+  waiting.className = "waiting";
+  const started = Date.now();
+  const tick = () => { waiting.textContent = `${t.waiting}… ${Math.round((Date.now() - started) / 1000)}${t.seconds}`; };
+  tick();
+  const timer = setInterval(tick, 1000);
+  $("log").append(waiting);
+  waiting.scrollIntoView({ block: "nearest" });
   session.quick = null;
   renderChips();
   $("input").value = "";
@@ -262,7 +288,7 @@ async function send(message, { fromCheck = false } = {}) {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        message,
+        message: bike + message,
         state: session.signature ? session.state : undefined,
         signature: session.signature,
         previousReply: session.lastReply,
@@ -287,7 +313,10 @@ async function send(message, { fromCheck = false } = {}) {
     const noGuide = fromCheck && data.turn.no_evidence ? `\n${t.checkNoGuide}` : "";
     session.log.push({ kind: "me", text: data.turn.reply + noGuide });
     const step = stepOf(session.step);
-    if (step) session.log.push({ kind: "source", text: step.source === "owner" ? t.sourceOwner : t.sourceVideo });
+    // 出所は変わった時だけ出して、毎回同じ文が並ばないようにする。
+    const source = step ? (step.source === "owner" ? t.sourceOwner : t.sourceVideo) : null;
+    const lastSource = session.log.findLast((entry) => entry.kind === "source")?.text;
+    if (source && source !== lastSource) session.log.push({ kind: "source", text: source });
     data.turn.citations.forEach((cite) => session.log.push({ kind: "cite", ...cite }));
     session.quick = data.turn.no_evidence || data.turn.topics ? "topics" : data.turn.ask || data.turn.step ? "unsure" : null;
     save();
@@ -305,6 +334,8 @@ async function send(message, { fromCheck = false } = {}) {
     renderLog();
     session.log.pop();
   } finally {
+    clearInterval(timer);
+    waiting.remove();
     sending = false;
     button.disabled = false;
     button.textContent = t.send;

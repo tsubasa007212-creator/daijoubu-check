@@ -23,6 +23,10 @@ main { max-width: 1040px; margin: auto; padding: 16px; display: grid; grid-templ
 #check-send { margin-top: 12px; padding: 10px 16px; border: 0; border-radius: 4px; background: var(--ink); color: #fff; font: inherit; cursor: pointer; }
 #log p { margin: 0 0 12px; white-space: pre-wrap; }
 #log .you { padding: 8px 12px; background: #efeadf; border-radius: 4px; }
+#log .waiting { color: var(--sub); font-size: 14px; animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .4; } }
+@media (prefers-reduced-motion: reduce) { #log .waiting { animation: none; } }
+#bike p { margin: 0 0 8px; font-weight: 600; }
 #log .source { margin-top: -8px; color: var(--sub); font-size: 12px; }
 #log .move { padding: 4px 8px; background: var(--moved); font-size: 14px; border-radius: 4px; }
 .scene { display: block; width: 100%; text-align: left; margin: 0 0 12px; padding: 8px 12px; background: none; border: 1px solid var(--line); border-radius: 4px; font: inherit; color: inherit; cursor: pointer; }

@@ -22,6 +22,8 @@
 <main>
   <section class="talk">
     <div id="log" aria-live="polite"></div>
+    <div id="bike"><p data-t="bikeAsk"></p><div id="bike-list"></div></div>
+    <p id="bike-chosen" class="hint" hidden></p>
     <div id="topics"></div>
     <div id="examples"></div>
     <div id="quick"></div>
@@ -47,7 +49,7 @@
       <p id="next-how"></p>
       <p id="next-source" class="hint"></p>
       <p id="next-needs" class="hint"></p>
-      <p id="next-limit" class="hint"></p>
+      <details class="hint"><summary data-t="cannotTell"></summary><p id="next-limit"></p></details>
     </section>
     <div id="player"></div>
     <details id="repair" hidden>
