@@ -1,64 +1,134 @@
-:root { --ink:#1d1b18; --sub:#5f5850; --line:#d8d2c7; --paper:#faf8f3; --accent:#b4371f; --moved:#fbeee0; --checked:#2f6b4f; --heard:#2c5c8a; --guess:#8a5a12; --unknown:#6b645a; }
+/* 整備士の作業台。濃い台の上に、答えだけが紙（作業票）で置かれる。札はテープ、差し色はテープの黄1色。 */
+:root { color-scheme: dark; --bench:#23262a; --bench-2:#2c3035; --steel:#3a3f45; --text:#ece7dc; --sub-on-bench:#b5afa3; --paper:#f4f0e6; --ink:#1d1b18; --sub:#5a544b; --rule:#d9d2c3; --tape:#e3b23c; --tape-ink:#7a5208; --checked:#8fd1a8; --checked-ink:#103a24; --heard:#9ec3ea; --heard-ink:#0f2e4d; --guess:#e8c889; --guess-ink:#4a3306; --unknown:#c9c5bd; --unknown-ink:#2a2824; --dock: 88px; }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.7 "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif; }
-header { padding: 20px 16px 8px; max-width: 1040px; margin: auto; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-#lang { padding: 6px; border: 1px solid var(--line); border-radius: 4px; background: #fff; font: inherit; font-size: 14px; }
-.actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.plain { padding: 8px; border: 0; background: none; color: var(--sub); font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; }
-.chip { display: inline-block; margin: 0 6px 6px 0; padding: 6px 10px; font-size: 15px; min-height: 44px; border: 1px solid var(--line); border-radius: 4px; background: #fff; font: inherit; color: inherit; text-align: left; cursor: pointer; }
-.notice span + span { margin-top: 4px; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-h1 { font-size: 22px; margin: 0; letter-spacing: .04em; }
-header p { margin: 2px 0 0; color: var(--sub); }
-.notice { max-width: 1008px; margin: 4px auto 0; padding: 0 16px; font-size: 13px; color: var(--sub); }
-.notice span { display: block; }
-.notice #draft { color: var(--accent); }
+html { background: #15171a; }
+body { margin: 0; background: var(--bench); color: var(--text); font: 17px/1.75 "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", sans-serif; -webkit-font-smoothing: antialiased; }
+.num { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
 [hidden] { display: none !important; }
-main { max-width: 1040px; margin: auto; padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; }
+:focus-visible { outline: 2px solid var(--tape); outline-offset: 2px; }
+
+/* 上の帯：作品名、整備士の確認済みの印、言語。その下にバイクの名 */
+.bar { position: sticky; top: 0; z-index: 2; padding: 8px 16px; background: var(--bench); border-bottom: 1px solid var(--steel); }
+.row1 { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-height: 36px; max-width: 1008px; margin: auto; }
+h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: .06em; }
+.verified { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.4; }
+.verified svg { flex: none; width: 18px; height: 18px; stroke: var(--tape); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#lang { margin-left: auto; padding: 4px 6px; border: 1px solid var(--steel); border-radius: 3px; background: var(--bench-2); color: var(--text); font: inherit; font-size: 13px; }
+.bike { max-width: 1008px; margin: 2px auto 0; font-size: 13px; line-height: 1.6; }
+
+/* 下の固定欄の分、末尾に余白を取る */
+main { max-width: 1040px; margin: auto; padding: 16px 16px calc(var(--dock) + 24px); display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; }
+#lead-block p { margin: 0 0 8px; }
+.notice { font-size: 13px; color: var(--sub-on-bench); }
+.notice span { display: block; }
+.notice #draft { color: var(--tape); }
+.hint { color: var(--sub-on-bench); font-size: 13px; }
+
+/* 節の番号：作業票の項目番号のように小さく。1本の罫を右に引く */
+.step { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .12em; color: var(--sub-on-bench); }
+.step::after { content: ""; flex: 1; height: 1px; background: var(--steel); }
+
+/* 相談者の言葉：台の上に直接。左に細い線 */
+#log p { margin: 0 0 12px; }
+#log .you { padding: 0 0 0 12px; border-left: 2px solid var(--steel); white-space: pre-wrap; }
+#log .waiting { color: var(--sub-on-bench); font-size: 14px; animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .4; } }
+#bike p { margin: 0 0 8px; font-weight: 700; }
+
+/* 読み取った札：マスキングテープ。角は小さく、文字は濃い。overflow:hidden は付けない（左線と剥がれが切れる） */
+.tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.tag { display: inline-flex; flex-direction: column; padding: 5px 12px 6px; border-radius: 3px; font-size: 14px; line-height: 1.5; animation: tagin .4s ease-out both; }
+.tag b { font-size: 11px; font-weight: 700; line-height: 1.3; letter-spacing: .08em; opacity: .85; }
+.tag b .arrow { margin: 0 4px; font-weight: 400; }
+.tag s { opacity: .6; text-decoration-thickness: 1.5px; }
+.tag.checked { background: var(--checked); color: var(--checked-ink); }
+.tag.heard { background: var(--heard); color: var(--heard-ink); }
+.tag.guess { background: var(--guess); color: var(--guess-ink); }
+.tag.unknown { background: var(--unknown); color: var(--unknown-ink); }
+.tag.from-checked { box-shadow: inset 4px 0 0 var(--checked); }
+.tag.from-heard { box-shadow: inset 4px 0 0 var(--heard); }
+.tag.from-guess { box-shadow: inset 4px 0 0 var(--guess); }
+.tag.from-unknown { box-shadow: inset 4px 0 0 var(--unknown); }
+@keyframes tagin { from { opacity: 0; transform: translateY(6px); } }
+
+/* 札が移る瞬間：幅いっぱいの札。上に前の色の札を重ね、0.4秒で剥がして下の色を見せる */
+.tag.swap { position: relative; width: 100%; padding: 10px 14px 11px 18px; font-size: 16px; }
+.tag .was { position: absolute; inset: 0; display: flex; flex-direction: column; padding: inherit; border-radius: inherit; box-shadow: 0 1px 2px rgba(0,0,0,.35); transform-origin: left bottom; animation: peel .4s ease-in 1.2s both; }
+.tag.from-checked .was { background: var(--checked); color: var(--checked-ink); }
+.tag.from-heard .was { background: var(--heard); color: var(--heard-ink); }
+.tag.from-guess .was { background: var(--guess); color: var(--guess-ink); }
+.tag.from-unknown .was { background: var(--unknown); color: var(--unknown-ink); }
+@keyframes peel { 0% { transform: none; opacity: 1; } 70% { opacity: 1; } 100% { transform: translate(12px, -108%) rotate(-5deg); opacity: 0; } }
+
+/* 答え：作業票。紙の面に黒い文字。根拠（動画の場面）と出所もこの紙の中 */
+#log .me { margin: 0 0 16px; padding: 12px 16px; background: var(--paper); color: var(--ink); border-radius: 6px; box-shadow: 0 1px 0 rgba(0,0,0,.4); }
+.me .say { margin: 0; white-space: pre-wrap; }
+.me .ask { display: block; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #cfc7b8; font-weight: 700; }
+.me .ev { display: flex; align-items: baseline; gap: 8px; margin: 12px 0 0; font-size: 11px; font-weight: 700; letter-spacing: .12em; color: var(--sub); }
+.me .ev::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.me .source { margin: 12px 0 0; padding-top: 8px; border-top: 1px dashed #cfc7b8; font-size: 13px; color: var(--sub); }
+/* 外した知らせ：作業票の先頭。テープ色の1本線と濃い黄の文字 */
+.me .move { margin: 0 0 12px; padding: 2px 12px; font-size: 13px; line-height: 1.6; color: var(--tape-ink); border-left: 3px solid var(--tape); }
+
+/* 動画の場面：紙の上の根拠。左に再生の印と時刻、縦線で区切って右に言葉と車の記録 */
+.scene { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; width: 100%; margin: 8px 0 0; padding: 0; text-align: left; font: inherit; color: var(--ink); background: none; border: 0; cursor: pointer; transition: opacity .4s; }
+.scene .t { grid-row: 1 / 3; align-self: start; display: grid; place-items: center; gap: 2px; min-width: 56px; padding: 4px 12px 4px 0; border-right: 1px solid var(--rule); color: var(--tape-ink); font-size: 15px; font-weight: 700; }
+.scene .t svg { width: 20px; height: 20px; fill: currentColor; }
+.scene .line { font-size: 15px; line-height: 1.6; }
+.scene small { display: block; margin-top: 4px; font-size: 12px; line-height: 1.5; color: var(--sub); }
+.scene.off { opacity: .65; }
+.scene.off .line { text-decoration: line-through; text-decoration-color: var(--ink); text-decoration-thickness: 2px; }
+/* 台の上に出る場面（自分で直す人へ）は台の色で */
+#repair-list .scene { margin: 0 0 12px; color: var(--text); }
+#repair-list .scene .t { color: var(--tape); border-color: var(--steel); }
+#repair-list .scene small { color: var(--sub-on-bench); }
+
+/* 話題や車種のボタン */
+.chip { display: inline-block; margin: 0 6px 6px 0; padding: 6px 12px; min-height: 44px; border: 1px solid var(--steel); border-radius: 3px; background: var(--bench-2); font: inherit; font-size: 15px; color: var(--text); text-align: left; cursor: pointer; }
+.plain { padding: 8px 0; border: 0; background: none; color: var(--sub-on-bench); font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; }
+
+/* 点検チェック */
 #check { margin-bottom: 12px; }
 .check-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .check-row span { flex: 1; }
-.check-row button { width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 4px; background: #fff; font: inherit; color: inherit; cursor: pointer; }
-.check-row button[aria-pressed=true] { background: var(--ink); color: #fff; }
-#check-send { margin-top: 12px; padding: 10px 16px; border: 0; border-radius: 4px; background: var(--ink); color: #fff; font: inherit; cursor: pointer; }
-#log p { margin: 0 0 12px; white-space: pre-wrap; }
-#log .you { padding: 8px 12px; background: #efeadf; border-radius: 4px; }
-#log .waiting { color: var(--sub); font-size: 14px; animation: pulse 1.4s ease-in-out infinite; }
-@keyframes pulse { 50% { opacity: .4; } }
-@media (prefers-reduced-motion: reduce) { #log .waiting { animation: none; } }
-#bike p { margin: 0 0 8px; font-weight: 600; }
-#log .source { margin-top: -8px; color: var(--sub); font-size: 13px; }
-.tags { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 14px; }
-.tag { display: inline-flex; flex-direction: column; padding: 4px 10px; border: 1px solid currentColor; border-radius: 4px; background: #fff; font-size: 14px; line-height: 1.5; animation: tagin .35s ease-out both; }
-.tag b { font-size: 12px; font-weight: 700; }
-.tag s { color: var(--sub); }
-.tag.checked { color: var(--checked); } .tag.heard { color: var(--heard); } .tag.guess { color: var(--guess); } .tag.unknown { color: var(--unknown); }
-@keyframes tagin { from { opacity: 0; transform: translateY(4px); } }
-@media (prefers-reduced-motion: reduce) { .tag { animation: none; } }
-#log .move { padding: 4px 8px; background: var(--moved); font-size: 14px; border-radius: 4px; }
-.scene { display: block; width: 100%; text-align: left; margin: 0 0 12px; padding: 8px 12px; background: none; border: 1px solid var(--line); border-radius: 4px; font: inherit; color: inherit; cursor: pointer; }
-.scene b { color: var(--accent); margin-right: 8px; font-variant-numeric: tabular-nums; }
-.scene small { display: block; color: var(--sub); }
-form textarea, details input, details select, details textarea { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 4px; font: inherit; background: #fff; }
-.input-row { display: flex; gap: 8px; align-items: flex-start; }
-#mic { flex: none; width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 4px; background: #fff; color: var(--ink); cursor: pointer; }
-#mic[aria-pressed=true] { background: var(--accent); border-color: var(--accent); color: #fff; animation: pulse 1.4s ease-in-out infinite; }
-#mic-status { margin: 4px 0 0; }
-#mic-status.on { color: var(--accent); font-weight: 600; }
-@media (prefers-reduced-motion: reduce) { #mic[aria-pressed=true] { animation: none; } }
-button[type=submit], #copy { margin-top: 8px; padding: 10px 24px; border: 0; border-radius: 4px; background: var(--ink); color: #fff; font: inherit; cursor: pointer; }
+.check-row button { width: 44px; height: 44px; border: 1px solid var(--steel); border-radius: 3px; background: var(--bench-2); font: inherit; color: var(--text); cursor: pointer; }
+.check-row button[aria-pressed=true] { background: var(--paper); color: var(--ink); }
+#check-send, #copy { margin-top: 12px; padding: 10px 16px; border: 0; border-radius: 3px; background: var(--paper); color: var(--ink); font: inherit; cursor: pointer; }
 button:disabled { opacity: .5; }
-.ledger { position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); overflow-y: auto; }
-.ledger h2 { font-size: 15px; margin: 0 0 8px; }
+
+/* 下に固定の入力欄：台の端。文字・声・送るを1つの欄に */
+.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 2; background: var(--bench); border-top: 1px solid var(--steel); }
+.dock-in { max-width: 1040px; margin: auto; padding: 8px 16px 16px; }
+#mic-status { margin: 0 0 6px; }
+#mic-status.on { color: var(--tape); font-weight: 700; }
+.input-row { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 0 4px 0 16px; background: var(--bench-2); border: 1px solid var(--steel); border-radius: 6px; }
+/* 1行で持つ。折り返すと欄が太るので、長い文は横に流す */
+.input-row textarea { flex: 1; min-width: 0; height: 48px; margin: 0; padding: 12px 0; border: 0; background: none; font: inherit; font-size: 16px; line-height: 1.5; color: var(--text); resize: none; outline: none; white-space: pre; overflow: hidden; }
+.input-row textarea::placeholder { color: var(--sub-on-bench); }
+.icon-btn { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 3px; background: none; color: var(--text); cursor: pointer; }
+.icon-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn.send { background: var(--paper); color: var(--ink); }
+#mic[aria-pressed=true] { background: var(--tape); color: var(--ink); animation: pulse 1.4s ease-in-out infinite; }
+
+/* 右の欄：次に確かめること、今わかっていること、店に見せる1枚 */
+.ledger { position: sticky; top: 84px; align-self: start; max-height: calc(100vh - 84px - var(--dock)); overflow-y: auto; }
+#next { margin-bottom: 24px; }
+#next p { margin: 0 0 8px; }
 .group { margin-bottom: 12px; }
-.group h3 { font-size: 13px; margin: 0; color: var(--sub); font-weight: 600; }
-.row { padding: 4px 8px; margin: 2px 0; border-bottom: 1px solid var(--line); font-size: 14px; transition: background .8s; }
-.row.moved { background: var(--moved); }
-.row small { display: block; color: var(--accent); font-size: 13px; }
-.row small.off { color: var(--sub); text-decoration: line-through; }
+.group h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 13px; font-weight: 700; }
+.group h3::before { content: ""; width: 14px; height: 8px; border-radius: 2px; background: currentColor; }
+.group.checked h3 { color: var(--checked); } .group.heard h3 { color: var(--heard); } .group.guess h3 { color: var(--guess); } .group.unknown h3 { color: var(--unknown); }
+.row { padding: 4px 0 4px 22px; font-size: 15px; transition: background .8s; }
+.row.moved { border-left: 3px solid var(--tape); padding-left: 19px; }
+.row small { display: block; font-size: 13px; color: var(--tape); }
+.row small.off { color: var(--sub-on-bench); text-decoration: line-through; }
 #player iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; margin-bottom: 12px; }
-details { margin-top: 8px; font-size: 14px; }
-summary { cursor: pointer; font-weight: 600; }
+details { margin-top: 8px; font-size: 15px; }
+summary { cursor: pointer; font-weight: 700; padding: 4px 0; }
 label { display: block; margin-top: 8px; }
-.hint { color: var(--sub); font-size: 13px; }
+details input, details select, details textarea { width: 100%; padding: 10px; border: 1px solid var(--steel); border-radius: 3px; background: var(--bench-2); color: var(--text); font: inherit; }
+
+@media (prefers-reduced-motion: reduce) { .tag, .scene, #log .waiting, #mic[aria-pressed=true] { animation: none; transition: none; } .tag .was { display: none; } }
+/* PCでは入力欄を会話の列の幅に合わせる（右の欄 340px と間 24px を空ける） */
+@media (min-width: 801px) { .dock-in { padding-right: 380px; } }
 @media (max-width: 800px) { main { grid-template-columns: minmax(0, 1fr); } .ledger { position: static; max-height: none; } }

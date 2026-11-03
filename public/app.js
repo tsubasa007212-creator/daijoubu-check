@@ -55,38 +55,118 @@ function play(videoId, time) {
   $("player").replaceChildren(frame);
 }
 
+// 動画の場面。左に再生の印と時刻、右に言葉と車の記録。
 function sceneButton(videoId, time, line, note) {
   const button = document.createElement("button");
   button.className = "scene";
   button.type = "button";
-  const stamp = document.createElement("b");
-  stamp.textContent = time;
+  const stamp = document.createElement("span");
+  stamp.className = "t num";
+  stamp.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z"/></svg>';
+  stamp.append(time);
+  const text = document.createElement("span");
+  text.className = "line";
+  text.textContent = line;
   const small = document.createElement("small");
   small.textContent = note;
-  button.append(stamp, line, small);
+  button.append(stamp, text, small);
   button.onclick = () => play(videoId, time);
   return button;
 }
 
-function renderEntry(entry) {
+function el(tagName, className, text) {
+  const node = document.createElement(tagName);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+// 答えの文。末尾の問いだけを太字にする。
+function sayNode(text) {
+  const p = el("p", "say");
+  const asked = text.match(/((?:[^。？?\n]+(?:か。|[？?])\s*)+)$/);
+  if (!asked || asked.index === 0) {
+    p.textContent = text;
+    return p;
+  }
+  p.append(text.slice(0, asked.index).trimEnd(), el("span", "ask", asked[1].trim()));
+  return p;
+}
+
+// 相談の節の見出し。言い直しが起きた往復（札が移った、または文が変わった）は「言い直し」と出す。
+function stepNode(index, count) {
+  let redo = false;
+  for (let i = index + 1; i < session.log.length && session.log[i].kind !== "you"; i += 1) {
+    const entry = session.log[i];
+    if (entry.kind === "tags" && entry.tags.some((tag) => (tag.from && tag.from !== tag.origin) || tag.old)) redo = true;
+  }
+  const step = el("p", "step");
+  step.append(el("span", "num", String(count).padStart(2, "0")), redo ? t.redo : t.consult);
+  return step;
+}
+
+function tagNode(tag) {
+  const moved = tag.from && tag.from !== tag.origin;
+  const item = el("span", `tag ${tag.origin}${moved ? ` from-${tag.from} swap` : ""}`);
+  const label = document.createElement("b");
+  if (moved) {
+    label.append(t[tag.from], el("span", "arrow", "→"), t[tag.origin]);
+  } else {
+    label.textContent = tag.old ? `${t[tag.origin]}・${t.corrected}` : t[tag.origin];
+  }
+  if (tag.old) {
+    item.append(label, el("s", "", tag.old), tag.text);
+  } else {
+    item.append(label, tag.text);
+  }
+  // 移った札は、前の色の札を上に重ねて剥がして見せる。
+  if (moved) {
+    const was = el("span", "was");
+    was.setAttribute("aria-hidden", "true");
+    was.append(el("b", "", t[tag.from]), tag.old ?? tag.text);
+    item.append(was);
+  }
+  return item;
+}
+
+// 作業票（紙）の中に足す。出所の行があれば、その前に入れる。
+function addToPaper(paper, node) {
+  paper.insertBefore(node, paper.querySelector(".source"));
+}
+
+// view は組み立て中の作業票と、外した知らせ、相談の通し番号を持つ。
+function renderEntry(entry, index, view) {
+  if (entry.kind === "you") {
+    view.paper = null;
+    view.count += 1;
+    $("log").append(stepNode(index, view.count), el("p", "you", entry.text));
+    return;
+  }
   if (entry.kind === "tags") {
-    const list = document.createElement("div");
-    list.className = "tags";
-    for (const tag of entry.tags) {
-      const item = document.createElement("span");
-      item.className = `tag ${tag.origin}`;
-      const label = document.createElement("b");
-      label.textContent = tag.from && tag.from !== tag.origin ? `${t[tag.from]} → ${t[tag.origin]}` : tag.old ? `${t[tag.origin]}・${t.corrected}` : t[tag.origin];
-      if (tag.old) {
-        const old = document.createElement("s");
-        old.textContent = tag.old;
-        item.append(label, old, tag.text);
-      } else {
-        item.append(label, tag.text);
-      }
-      list.append(item);
-    }
+    view.paper = null;
+    const list = el("div", "tags");
+    list.append(...entry.tags.map(tagNode));
     $("log").append(list);
+    return;
+  }
+  // 外した知らせは、次の作業票の先頭に入れる。
+  if (entry.kind === "move") {
+    view.move = entry.text;
+    return;
+  }
+  if (entry.kind === "me") {
+    const paper = el("div", "me");
+    if (view.move) paper.append(el("p", "move", view.move));
+    view.move = null;
+    paper.append(sayNode(entry.text));
+    $("log").append(paper);
+    view.paper = paper;
+    return;
+  }
+  if (entry.kind === "source") {
+    const source = el("p", "source", entry.text);
+    if (view.paper) view.paper.append(source);
+    else $("log").append(source);
     return;
   }
   if (entry.kind === "cite") {
@@ -95,18 +175,25 @@ function renderEntry(entry) {
     if (!scene) return;
     const line = entry.gloss || scene.line;
     const note = entry.gloss ? `${t.otherBike} / ${t.original}: ${scene.line}` : `${t.otherBike}：${card.vehicle}`;
-    $("log").append(sceneButton(card.video_id, scene.t, line, note));
+    const button = sceneButton(card.video_id, scene.t, line, note);
+    // 言い直しで支えを失った比較の場面は、取り下げたと見せる。
+    const links = session.comparisons.filter((c) => c.card_id === entry.card_id);
+    if (links.length > 0 && links.every((c) => c.status === "released")) button.classList.add("off");
+    if (!view.paper) {
+      $("log").append(button);
+      return;
+    }
+    if (!view.paper.querySelector(".ev")) addToPaper(view.paper, el("p", "ev", t.evidence));
+    addToPaper(view.paper, button);
     return;
   }
-  const p = document.createElement("p");
-  p.className = entry.kind;
-  p.textContent = entry.text;
-  $("log").append(p);
+  $("log").append(el("p", entry.kind, entry.text));
 }
 
 function renderLog() {
   $("log").replaceChildren();
-  session.log.forEach(renderEntry);
+  const view = { paper: null, move: null, count: 0 };
+  session.log.forEach((entry, index) => renderEntry(entry, index, view));
   $("topics").hidden = session.log.length > 0;
   $("examples").hidden = session.log.length > 0;
   $("log").lastElementChild?.scrollIntoView({ block: "nearest" });
@@ -154,7 +241,7 @@ function renderLedger() {
     const rows = statements.filter((s) => s.origin === origin);
     if (rows.length === 0) continue;
     const group = document.createElement("div");
-    group.className = "group";
+    group.className = `group ${origin}`;
     const title = document.createElement("h3");
     title.textContent = t[origin];
     group.append(title);
@@ -206,6 +293,8 @@ function chip(text, onClick) {
 // 答えの多くは車種で変わるので、最初に種類を選んでもらう。分からないも選べる。
 function renderBike() {
   const fresh = session.log.length === 0;
+  // 説明は最初の画面にだけ出す。
+  $("lead-block").hidden = !fresh;
   $("bike").hidden = !fresh || session.bike !== undefined;
   $("bike-list").replaceChildren(...t.bikes.map((text, index) => chip(text, () => {
     session.bike = index;
@@ -258,6 +347,7 @@ function renderTexts() {
   document.title = t.title;
   document.querySelectorAll("[data-t]").forEach((node) => { node.textContent = t[node.dataset.t]; });
   $("input").placeholder = t.placeholder;
+  setSend(sending ? t.sending : t.send);
   $("mic").setAttribute("aria-label", listening ? t.micStop : t.mic);
   $("mic").title = listening ? t.micStop : t.mic;
   $("f-where").replaceChildren(...t.bought.map((text) => new Option(text)));
@@ -286,6 +376,12 @@ function sheetText() {
     : `${label}: ${values[i]}`)).join("\n");
 }
 
+// 送るボタンは印だけなので、文は読み上げ用の名前に置く。
+function setSend(text) {
+  $("send").setAttribute("aria-label", text);
+  $("send").title = text;
+}
+
 async function send(message, { fromCheck = false } = {}) {
   if (sending) return;
   sending = true;
@@ -293,7 +389,7 @@ async function send(message, { fromCheck = false } = {}) {
   const current = turnId;
   const button = $("send");
   button.disabled = true;
-  button.textContent = t.sending;
+  setSend(t.sending);
   const first = !session.log.some((entry) => entry.kind === "you");
   const bike = first && session.bike !== undefined ? `（${MESSAGES.ja.bikeLabel}：${MESSAGES.ja.bikes[session.bike]}）` : "";
   session.log.push({ kind: "you", text: message });
@@ -312,6 +408,8 @@ async function send(message, { fromCheck = false } = {}) {
   // 聞き取りの途中で送った時は、送った後の欄に声の続きが入らないよう止める。
   stopListening();
   $("input").value = "";
+  // 1行の欄は横に流れるので、空にした時に左端へ戻す。
+  $("input").scrollLeft = 0;
   try {
     const response = await fetch("/api/turn", {
       method: "POST",
@@ -374,7 +472,7 @@ async function send(message, { fromCheck = false } = {}) {
     waiting.remove();
     sending = false;
     button.disabled = false;
-    button.textContent = t.send;
+    setSend(t.send);
   }
 }
 
@@ -481,7 +579,7 @@ $("restart").addEventListener("click", () => {
   sending = false;
   stopListening();
   $("send").disabled = false;
-  $("send").textContent = t.send;
+  setSend(t.send);
   session = emptySession();
   previous = {};
   checks = [];

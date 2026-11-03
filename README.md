@@ -1,4 +1,4 @@
-# 大丈夫チェック（daijoubu-check）
+# 二輪問診（daijoubu-check）
 
 Built with Claude: Japan 2026（テーマ2「本来、誰にでも届くべきものを。」）の提出作品です。
 

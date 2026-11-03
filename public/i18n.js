@@ -1,7 +1,11 @@
 // 画面の言葉。言語を増やす時は、同じ鍵で1言語足す。
 export const MESSAGES = {
   ja: {
-    title: "大丈夫チェック",
+    title: "二輪問診",
+    verified: "整備士 大谷 確認済み",
+    consult: "相談",
+    redo: "言い直し",
+    evidence: "根拠",
     lead: "現役の整備士が確かめたことだけで答えます。確かめていないことには答えません。",
     howto: "困っていることを、下のボタンから選ぶか、自分の言葉で書いてください。",
     notice: "名前・電話番号・ナンバーは書かないでください（答えられなかった相談は保存します）。",
@@ -102,7 +106,11 @@ export const MESSAGES = {
     },
   },
   en: {
-    title: "Daijoubu Check",
+    title: "Nirin Monshin",
+    verified: "Checked by Otani, mechanic",
+    consult: "Question",
+    redo: "Correction",
+    evidence: "Evidence",
     lead: "We answer only from what a working mechanic has confirmed. We do not answer what he has not.",
     howto: "Pick what is bothering you from the buttons below, or write it in your own words.",
     notice: "Please do not write names, phone numbers, or plate numbers (questions we cannot answer are saved).",
