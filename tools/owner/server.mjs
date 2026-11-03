@@ -100,7 +100,15 @@ async function apply({ groupId, question, answer, draft }) {
     writeLf(FLOWS, JSON.stringify(mergeFlows(flows, draft), null, 2) + "\n");
     const check = await run("node tools/check_cards.mjs");
     const test = check.ok ? await run("npm test") : { ok: false, out: "カードの確認が落ちたので、テストは回していません。" };
-    if (check.ok && test.ok) return { applied: true, check, test };
+    if (check.ok && test.ok) {
+      // 答えた相談は、一覧で「もう答えられるかもしれない」側へ移す。
+      const done = cached.groups.find((g) => g.id === body.groupId);
+      if (done) {
+        done.covered_by = body.draft?.flow?.id ?? "answered";
+        writeLf(CACHE, JSON.stringify(cached));
+      }
+      return { applied: true, check, test };
+    }
     writeLf(FLOWS, flowsText);
     writeLf(MEMO, memoText);
     return { applied: false, rolledBack: true, check, test };

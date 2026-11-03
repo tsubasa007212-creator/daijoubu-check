@@ -29,9 +29,15 @@ async function post(path, body = {}) {
 async function work(button, label, task) {
   if (busy) return;
   busy = true;
-  const before = button.textContent;
+  // 一覧のボタンは中に件数などを持つので、文字を書き換えずに状態の行で知らせる。
+  const inList = button.classList.contains("group");
+  const before = [...button.childNodes];
   const started = Date.now();
-  const tick = () => { button.textContent = `${label} ${Math.round((Date.now() - started) / 1000)}秒`; };
+  const tick = () => {
+    const text = `${label} ${Math.round((Date.now() - started) / 1000)}秒`;
+    if (inList) $("list-status").textContent = text;
+    else button.textContent = text;
+  };
   tick();
   const timer = setInterval(tick, 1000);
   document.querySelectorAll("button").forEach((b) => { b.disabled = true; });
@@ -42,7 +48,8 @@ async function work(button, label, task) {
   } finally {
     busy = false;
     clearInterval(timer);
-    button.textContent = before;
+    button.replaceChildren(...before);
+    if (inList) $("list-status").textContent = "";
     document.querySelectorAll("button").forEach((b) => { b.disabled = false; });
     $("apply").disabled = !draft || $("errors").children.length > 0;
   }
@@ -217,6 +224,7 @@ $("apply").addEventListener("click", () => {
     $("test-out").textContent = data.test?.out ?? "";
     $("result-box").hidden = false;
     if (data.applied) {
+      loadGroups(false);
       draft = null;
       $("draft-box").hidden = true;
     }
