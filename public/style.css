@@ -1,5 +1,5 @@
 /* 整備士の作業台。濃い台の上に、答えだけが紙（作業票）で置かれる。札はテープ、差し色はテープの黄1色。 */
-:root { color-scheme: dark; --bench:#23262a; --bench-2:#2c3035; --steel:#3a3f45; --text:#ece7dc; --sub-on-bench:#b5afa3; --paper:#f4f0e6; --ink:#1d1b18; --sub:#5a544b; --rule:#d9d2c3; --tape:#e3b23c; --tape-ink:#7a5208; --checked:#8fd1a8; --checked-ink:#103a24; --heard:#9ec3ea; --heard-ink:#0f2e4d; --guess:#e8c889; --guess-ink:#4a3306; --unknown:#c9c5bd; --unknown-ink:#2a2824; --dock: 88px; }
+:root { color-scheme: dark; --bench:#23262a; --bench-2:#2c3035; --steel:#3a3f45; --text:#ece7dc; --sub-on-bench:#b5afa3; --paper:#f4f0e6; --ink:#1d1b18; --sub:#5a544b; --rule:#d9d2c3; --tape:#e3b23c; --tape-ink:#7a5208; --checked:#8fd1a8; --checked-ink:#103a24; --heard:#9ec3ea; --heard-ink:#0f2e4d; --guess:#e8c889; --guess-ink:#4a3306; --unknown:#c9c5bd; --unknown-ink:#2a2824; --dock: calc(88px + env(safe-area-inset-bottom)); --r-btn: 12px; }
 * { box-sizing: border-box; }
 html { background: #15171a; scroll-padding: 60px 0 calc(var(--dock) + 24px); }
 /* 読み上げ用。見えないが、答えだけを伝える */
@@ -15,12 +15,12 @@ body { margin: 0; background: var(--bench); color: var(--text); font: 17px/1.75 
 h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: .06em; }
 .verified { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.4; }
 .verified svg { flex: none; width: 18px; height: 18px; stroke: var(--tape); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-#lang { margin-left: auto; padding: 4px 6px; border: 1px solid var(--steel); border-radius: 3px; background: var(--bench-2); color: var(--text); font: inherit; font-size: 13px; }
+#lang { margin-left: auto; color: var(--text); font: inherit; font-size: 13px; }
 .bike { max-width: 1008px; margin: 2px auto 0; font-size: 13px; line-height: 1.6; }
 
 /* 下の固定欄の分、末尾に余白を取る */
 main { max-width: 1040px; margin: auto; padding: 16px 16px calc(var(--dock) + 24px); display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; }
-#lead-block p { margin: 0 0 8px; }
+#lead-block p { margin: 0 0 16px; font-size: 16px; line-height: 1.8; max-width: 34em; }
 /* 今の対象：まずはジャイロキャノピー。テープ色の1本線 */
 #lead-block .scope { padding-left: 10px; border-left: 3px solid var(--tape); font-size: 14px; line-height: 1.7; color: var(--sub-on-bench); }
 .notice { font-size: 13px; color: var(--sub-on-bench); }
@@ -102,28 +102,27 @@ main { max-width: 1040px; margin: auto; padding: 16px 16px calc(var(--dock) + 24
 #repair-list .scene small { color: var(--sub-on-bench); }
 
 /* 話題や車種のボタン */
-.chip { display: inline-block; margin: 0 6px 6px 0; padding: 6px 12px; min-height: 44px; border: 1px solid var(--steel); border-radius: 3px; background: var(--bench-2); font: inherit; font-size: 15px; color: var(--text); text-align: left; cursor: pointer; }
-.plain { padding: 8px 0; border: 0; background: none; color: var(--sub-on-bench); font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; }
+.chip { font: inherit; font-size: 15px; color: var(--text); text-align: left; cursor: pointer; }
+.plain { background: none; color: var(--sub-on-bench); font: inherit; font-size: 14px; cursor: pointer; }
 
 /* 点検チェック */
 #check { margin-bottom: 12px; }
 .check-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .check-row span { flex: 1; }
-.check-row button { width: 44px; height: 44px; border: 1px solid var(--steel); border-radius: 3px; background: var(--bench-2); font: inherit; color: var(--text); cursor: pointer; }
+.check-row button { width: 44px; height: 44px; background: var(--bench-2); font: inherit; color: var(--text); cursor: pointer; }
 .check-row button[aria-pressed=true] { background: var(--paper); color: var(--ink); }
-#check-send, #copy { margin-top: 12px; padding: 10px 16px; border: 0; border-radius: 3px; background: var(--paper); color: var(--ink); font: inherit; cursor: pointer; }
-button:disabled { opacity: .5; }
+#check-send, #copy { border: 0; background: var(--paper); color: var(--ink); font: inherit; cursor: pointer; }
 
 /* 下に固定の入力欄：台の端。文字・声・送るを1つの欄に */
 .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 2; background: var(--bench); border-top: 1px solid var(--steel); }
-.dock-in { max-width: 1040px; margin: auto; padding: 8px 16px 16px; }
+.dock-in { max-width: 1040px; margin: auto; padding: 8px 16px calc(12px + env(safe-area-inset-bottom)); }
 #mic-status { margin: 0 0 6px; }
 #mic-status.on { color: var(--tape); font-weight: 700; }
-.input-row { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 0 4px 0 16px; background: var(--bench-2); border: 1px solid var(--steel); border-radius: 6px; }
+.input-row { display: flex; align-items: center; background: var(--bench-2); }
 /* 1行で持つ。折り返すと欄が太るので、長い文は横に流す */
 .input-row textarea { flex: 1; min-width: 0; height: 48px; margin: 0; padding: 12px 0; border: 0; background: none; font: inherit; font-size: 16px; line-height: 1.5; color: var(--text); resize: none; outline: none; white-space: pre; overflow: hidden; }
 .input-row textarea::placeholder { color: var(--sub-on-bench); }
-.icon-btn { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 3px; background: none; color: var(--text); cursor: pointer; }
+.icon-btn { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: none; color: var(--text); cursor: pointer; }
 .icon-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .icon-btn.send { background: var(--paper); color: var(--ink); }
 #mic[aria-pressed=true] { background: var(--tape); color: var(--ink); animation: pulse 1.4s ease-in-out infinite; }
@@ -141,12 +140,96 @@ button:disabled { opacity: .5; }
 .row small { display: block; font-size: 13px; color: var(--tape); }
 .row small.off { color: var(--sub-on-bench); }
 #player iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; margin-bottom: 12px; }
-details { margin-top: 8px; font-size: 15px; }
-summary { cursor: pointer; font-weight: 700; padding: 4px 0; }
-label { display: block; margin-top: 8px; }
-details input, details select, details textarea { width: 100%; padding: 10px; border: 1px solid var(--steel); border-radius: 3px; background: var(--bench-2); color: var(--text); font: inherit; }
+details { font-size: 15px; }
+summary { cursor: pointer; font-weight: 700; }
+label { display: block; }
+details input, details select, details textarea { width: 100%; background: var(--bench-2); color: var(--text); font: inherit; }
 
 @media (prefers-reduced-motion: reduce) { .tag, .scene, #log .waiting, #mic[aria-pressed=true] { animation: none; transition: none; } .tag .was { display: none; } }
 /* PCでは入力欄を会話の列の幅に合わせる（右の欄 340px と間 24px を空ける） */
 @media (min-width: 801px) { .dock-in { padding-right: 380px; } }
 @media (max-width: 800px) { main { grid-template-columns: minmax(0, 1fr); } .ledger { position: static; max-height: none; } }
+
+/* 部品の形をそろえる：枠線なし・面で見せる・角丸 12px・押すと沈む。札（.tag）はテープなので据え置き */
+.chip { display: inline-flex; align-items: center; margin: 0; padding: 10px 16px; min-height: 48px; border: 0; border-radius: var(--r-btn); background: var(--bench-2); box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 1px 2px rgba(0,0,0,.4); transition: transform .12s, background-color .12s; -webkit-tap-highlight-color: transparent; }
+#topics, #quick, #examples { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+#topics[hidden], #quick[hidden], #examples[hidden] { display: none !important; }
+.chip.bike { border-radius: 16px; padding: 10px 8px 12px; }
+.chip.bike img { border-radius: 12px; }
+.chip:active, .check-row button:active, #check-send:active, #copy:active, .icon-btn:not(:disabled):active, .plain:active { transform: translateY(1px) scale(.98); }
+.chip.bike:active { transform: translateY(1px); }
+@media (hover: hover) { .chip:hover, .check-row button:hover { background: var(--steel); } }
+.check-row button { border: 0; border-radius: 10px; transition: background-color .15s, color .15s, transform .12s; }
+.check-row button[aria-pressed=true] { box-shadow: 0 1px 2px rgba(0,0,0,.4); }
+#check-send, #copy { display: block; width: 100%; margin-top: 14px; min-height: 50px; padding: 12px 16px; border-radius: var(--r-btn); font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,.4); transition: transform .12s, opacity .2s; }
+button:disabled { opacity: .4; box-shadow: none; }
+/* 言語は丸い札。既定の▼は消して、同じ色の小さな矢印を描く */
+#lang { padding: 6px 26px 6px 12px; border: 0; border-radius: 999px; min-height: 32px; font-weight: 700; -webkit-appearance: none; appearance: none; background: var(--bench-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23b5afa3' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center / 10px 6px; }
+#f-where { -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23b5afa3' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-size: 10px 6px; }
+label { margin-top: 12px; }
+label > span { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--sub-on-bench); }
+details input, details select, details textarea { min-height: 46px; padding: 11px 14px; border: 0; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); transition: box-shadow .15s; }
+details input:focus-visible, details select:focus-visible, details textarea:focus-visible { outline: none; box-shadow: inset 0 0 0 1.5px var(--tape); }
+#sheet-text { background: var(--paper); color: var(--ink); margin-top: 12px; }
+.plain { display: inline-flex; align-items: center; min-height: 40px; margin-top: 16px; padding: 0 14px; border: 1px solid var(--steel); border-radius: 999px; text-decoration: none; transition: background .12s; }
+@media (prefers-reduced-motion: reduce) { .chip, .check-row button, #check-send, #copy, .icon-btn, .plain { transition: none; } }
+
+/* 最初の画面：説明は1段落＋折りたたみ。車種の札を1画面目に上げる */
+#lead-block .about { margin: 0 0 24px; font-size: 14px; color: var(--sub-on-bench); }
+#lead-block .about summary { display: inline; font-weight: 400; text-decoration: underline; text-underline-offset: 3px; padding: 0; }
+#lead-block .scope { margin-top: 10px; }
+#lead-block .notice { margin-bottom: 0; }
+#bike-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.chip.bike { font-size: 12.5px; line-height: 1.35; white-space: pre-line; padding-left: 4px; padding-right: 4px; }
+.chip.bike img { max-width: 96px; }
+@media (min-width: 560px) { #bike-list { grid-template-columns: repeat(5, minmax(0, 1fr)); } .chip.bike img { max-width: 112px; } }
+
+/* 下の入力欄：丸い発言欄と丸いボタン。触ると縁がテープ色に光り、送っている間は下に1本の線が脈打つ */
+.input-row { position: relative; gap: 6px; min-height: 56px; padding: 4px 6px 4px 18px; border: 0; border-radius: 28px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); transition: box-shadow .2s; }
+.input-row:focus-within { box-shadow: inset 0 0 0 1.5px var(--tape); }
+.icon-btn { border-radius: 50%; transition: transform .12s; }
+.icon-btn:focus-visible { outline-offset: -2px; }
+.dock.sending .input-row::after { content: ""; position: absolute; left: 20px; right: 20px; bottom: 0; height: 2px; border-radius: 1px; background: var(--tape); animation: pulse 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .input-row, .icon-btn { transition: none; } .dock.sending .input-row::after { animation: none; } }
+
+/* 最初の画面は右の欄を出さない（app.js で hidden）。:has 非対応では2列のまま */
+main:has(.ledger[hidden]) { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 801px) { body:has(.ledger[hidden]) .dock-in { padding-right: 16px; } }
+
+/* 答えの紙は置かれるように出る。待ちは、まだ書いていない薄い紙 */
+@keyframes paperin { from { opacity: 0; transform: translateY(8px); } }
+#log .me { box-shadow: 0 1px 1px rgba(0,0,0,.35), 0 10px 24px -8px rgba(0,0,0,.55); border-radius: 10px; }
+#log .me.fresh { animation: paperin .35s ease-out .25s both; }
+#log .waiting { position: relative; min-height: 56px; margin: 0 0 16px; padding: 12px 16px 12px 36px; border-radius: 10px; background: rgba(244,240,230,.12); color: var(--sub-on-bench); font-size: 14px; animation: none; }
+#log .waiting::before { content: ""; position: absolute; left: 16px; top: 16px; width: 8px; height: 24px; border-radius: 2px; background: var(--tape); animation: pulse 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { #log .me.fresh { animation: none; } #log .waiting::before { animation: none; } }
+
+/* 折りたたみ：既定の三角をやめ、指で押せる高さの行に。Safari は ::-webkit-details-marker の行が必須 */
+details { margin-top: 16px; }
+summary { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0; list-style: none; -webkit-tap-highlight-color: transparent; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: ""; flex: none; width: 8px; height: 8px; border-right: 1.5px solid var(--sub-on-bench); border-bottom: 1.5px solid var(--sub-on-bench); transform: rotate(-45deg); transition: transform .2s; }
+details[open] > summary::before { transform: rotate(45deg); }
+#next details summary { min-height: 40px; font-weight: 400; font-size: 14px; color: var(--sub-on-bench); }
+#lead-block .about summary::before { display: none; }
+@media (prefers-reduced-motion: reduce) { summary::before { transition: none; } }
+
+/* 上の帯：作品名を本文より大きく。狭い幅では確認済みの印を2行目に */
+h1 { font-size: 20px; letter-spacing: .04em; line-height: 1.3; }
+.verified { font-size: 13px; color: var(--sub-on-bench); }
+.verified svg { width: 16px; height: 16px; }
+#lang { order: 2; }
+@media (max-width: 480px) { .verified { flex-basis: 100%; order: 3; margin-top: 2px; } }
+@media (max-width: 480px) { .ledger { top: 108px; max-height: calc(100vh - 108px - var(--dock)); } }
+
+/* 縦の余白を 16/24/32 の律動に */
+main { padding: 24px 16px calc(var(--dock) + 32px); }
+#bike { margin: 32px 0 0; }
+#bike p { margin: 0 0 16px; }
+#log p { margin: 0 0 16px; }
+#log .me { margin: 0 0 32px; }
+.step { margin: 24px 0 12px; }
+#log > .step:first-child { margin-top: 0; }
+#check { margin: 24px 0; }
+.group { margin-bottom: 16px; }
+#next { margin-bottom: 32px; }

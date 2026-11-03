@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>二輪問診</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap">
@@ -24,8 +24,11 @@
   <section class="talk">
     <div id="lead-block">
       <p data-t="lead"></p>
-      <p class="scope" data-t="scope"></p>
-      <p class="notice"><span data-t="notice"></span><span id="draft" data-t="draft" hidden></span></p>
+      <details class="about">
+        <summary data-t="about"></summary>
+        <p class="scope" data-t="scope"></p>
+        <p class="notice"><span data-t="notice"></span><span id="draft" data-t="draft" hidden></span></p>
+      </details>
     </div>
     <div id="log"></div>
     <p id="announce" class="sr" aria-live="polite"></p>

@@ -52,6 +52,8 @@ function load() {
   }
 }
 
+// 動きを減らす設定の人には、紙の出現と画面の送りを動かさない。
+const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const seconds = (time) => time.split(":").reduce((sum, part) => sum * 60 + Number(part), 0);
 const cardOf = (id) => cards.find((c) => c.id === id);
 const stepOf = (ref) => flows.find((f) => f.id === ref?.flow_id)?.steps.find((s) => s.id === ref?.step_id);
@@ -180,6 +182,8 @@ function renderEntry(entry, index, view) {
   }
   if (entry.kind === "me") {
     const paper = el("div", "me");
+    // 置かれる動きは、答えを受けた直後の最新の紙だけ。
+    if (view.fresh && index > view.lastYou) paper.classList.add("fresh");
     paper.append(...view.moves.map((text) => el("p", "move", text)));
     view.moves = [];
     paper.append(sayNode(entry.text));
@@ -221,7 +225,7 @@ function renderLog(fresh = false) {
   session.log.forEach((entry, index) => renderEntry(entry, index, view));
   $("topics").hidden = session.log.length > 0;
   $("examples").hidden = session.log.length > 0;
-  $("log").lastElementChild?.scrollIntoView({ block: "nearest" });
+  $("log").lastElementChild?.scrollIntoView({ block: "nearest", behavior: fresh && !calm ? "smooth" : "auto" });
 }
 
 // 難しい言葉は、この欄の中で最初の1回だけ「語（説明）」にする。「」の中は動画の言葉なので触らない。
@@ -341,9 +345,11 @@ function renderBike() {
     return button;
   }));
   $("bike-chosen").hidden = session.bike === undefined;
-  if (session.bike !== undefined) $("bike-chosen").textContent = `${t.bikeLabel}：${t.bikes[session.bike]}`;
+  if (session.bike !== undefined) $("bike-chosen").textContent = `${t.bikeLabel}：${t.bikes[session.bike].replace("\n", lang === "ja" ? "" : " ")}`;
   $("topics").hidden = !fresh || session.bike === undefined;
   $("check").hidden = session.bike === undefined && fresh;
+  // 最初の画面は車種の選択だけ。右の欄は最初の相談を送ってから出す。
+  document.querySelector(".ledger").hidden = fresh;
 }
 
 function renderChips() {
@@ -432,10 +438,11 @@ async function send(message, { fromCheck = false } = {}) {
   const current = turnId;
   const button = $("send");
   button.disabled = true;
+  $("form").classList.add("sending");
   setSend(t.sending);
   // 点検チェックの全部○はサーバーを通らないので、「まだ話していない」は署名の有無で見る。
   const first = !session.signature;
-  const bike = first && session.bike !== undefined ? `（${MESSAGES.ja.bikeLabel}：${MESSAGES.ja.bikes[session.bike]}）` : "";
+  const bike = first && session.bike !== undefined ? `（${MESSAGES.ja.bikeLabel}：${MESSAGES.ja.bikes[session.bike].replace("\n", "")}）` : "";
   session.log.push({ kind: "you", text: message });
   renderLog();
   renderBike();
@@ -451,7 +458,7 @@ async function send(message, { fromCheck = false } = {}) {
   tick();
   const timer = setInterval(tick, 1000);
   $("log").append(waiting);
-  waiting.scrollIntoView({ block: "nearest" });
+  waiting.scrollIntoView({ block: "nearest", behavior: calm ? "auto" : "smooth" });
   session.quick = null;
   renderChips();
   // 聞き取りの途中で送った時は、送った後の欄に声の続きが入らないよう止める。
@@ -526,6 +533,7 @@ async function send(message, { fromCheck = false } = {}) {
     if (current === turnId) {
       sending = false;
       button.disabled = false;
+      $("form").classList.remove("sending");
       setSend(t.send);
     }
   }
@@ -637,6 +645,7 @@ $("restart").addEventListener("click", () => {
   sending = false;
   stopListening();
   $("send").disabled = false;
+  $("form").classList.remove("sending");
   setSend(t.send);
   session = emptySession();
   previous = {};
