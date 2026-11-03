@@ -62,10 +62,20 @@ function sceneButton(videoId, time, line, note) {
   const button = document.createElement("button");
   button.className = "scene";
   button.type = "button";
+  // 左にその動画の絵（YouTube の縮小画像）と再生の印、下に時刻。
   const stamp = document.createElement("span");
   stamp.className = "t num";
-  stamp.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z"/></svg>';
-  stamp.append(time);
+  const pic = document.createElement("span");
+  pic.className = "pic";
+  const img = document.createElement("img");
+  img.src = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+  img.alt = "";
+  img.loading = "lazy";
+  img.width = 320;
+  img.height = 180;
+  pic.append(img);
+  pic.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z"/></svg>');
+  stamp.append(pic, time);
   const text = document.createElement("span");
   text.className = "line";
   text.textContent = line;
