@@ -199,3 +199,9 @@ test("症状の分からない相談は決まった文で聞き返す", () => {
   assert.equal(fixedTurn({ kind: "symptom", reply: "x", citations: [] }, "ja", replies), null);
   assert.equal(fixedTurn({ kind: "vague", reply: "x", citations: [], step: { flow_id: "a", step_id: "b" } }, "ja", replies), null);
 });
+
+test("英語の「かどうかは言えない」は言い切りにしない", () => {
+  const turn = (reply) => ({ reply, no_evidence: true });
+  assert.deepEqual(checkTurn(turn("We cannot tell whether it's safe to ride on these tires."), cards), []);
+  assert.ok(checkTurn(turn("It's safe to ride."), cards).includes("assertion in reply"));
+});

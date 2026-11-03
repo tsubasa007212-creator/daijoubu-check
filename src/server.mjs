@@ -3,7 +3,7 @@ import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join } from "node:path";
 import { applyTurn, comparisons, newState, releasedCards } from "./engine.mjs";
-import { askStepOnly, checkTurn, fixedTurn } from "./guard.mjs";
+import { askStepOnly, assertions, checkTurn, fixedTurn } from "./guard.mjs";
 import { createClient, readTurn } from "./claude.mjs";
 import { ALLOW_UNCHECKED, FIXED_REPLY, LIMIT_DAY, LIMIT_HOUR, MAX_BODY, MAX_MESSAGE, PORT, sendQuestion, STOP_REPLY } from "./config.mjs";
 import { createLimiter, isValidState, trimState } from "./limits.mjs";
@@ -49,9 +49,11 @@ async function answer(state, message, lang, previousReply) {
         flows,
       });
       if (errors.length === 0) return turn.no_evidence ? stop(next) : { state: next, turn };
-      console.warn("guard", errors);
+      // どの言い方で止まったかだけを残す。相談の文は残さない。
+      console.warn("guard", errors, assertions(turn.reply ?? "").map(String));
       hint = errors.join(", ");
-      const asked = askStepOnly(turn, flows, errors);
+      // 流れの問いは日本語なので、ほかの言語ではそのまま聞かない。
+      const asked = lang === "en" ? null : askStepOnly(turn, flows, errors);
       stepOnly = asked ? { state: next, turn: asked } : null;
     } catch (error) {
       console.warn("turn", error.message);

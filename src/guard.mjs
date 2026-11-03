@@ -12,10 +12,10 @@ const ASSERTIONS = [
 const RIDE_REQUESTS = [/(走|乗)って.{0,30}(確かめ|試し)て(ください|みて|ほしい|もらえ|。|$)/];
 const MAX_REPLY = 600;
 // 「大丈夫です」とは言えません、のような否定は言い切りではない。
-const NEGATED = /とは(言え|言い切れ|限ら|決め)|かどうか|か(は|も)(分かり|言え)|cannot say|can't say|not sure/i;
+const NEGATED = /とは(言え|言い切れ|限ら|決め)|かどうか|か(は|も)(分かり|言え)|cannot say|can't say|not sure|whether|can(?:no|')t tell|can(?:no|')t confirm|have not confirmed/i;
 
 // 「〜とは言えませんが、問題ありません」を否定の文として通さないよう、「が、」「けど、」でも分ける。
-function assertions(reply) {
+export function assertions(reply) {
   const plain = reply.replace(/[’‘]/g, "'").replace(/「[^」]*」/g, "");
   const sentences = plain.split(/(?<=[。．.!?！？\n]|が、|けど、)/);
   return [
