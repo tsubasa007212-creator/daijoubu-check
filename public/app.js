@@ -32,6 +32,10 @@ let bought = 0;
 const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
 let recognizer = null;
 let listening = false;
+// 待っている相談を「やめる」で止めるための手綱。
+let aborter = null;
+// 1列の幅では「次に確かめること」を最新の答えのすぐ下に移す。
+const narrow = matchMedia("(max-width: 800px)");
 
 function emptySession() {
   return { state: { statements: [], links: [] }, signature: null, comparisons: [], log: [], lastReply: "", quick: null };
@@ -205,6 +209,11 @@ function renderEntry(entry, index, view) {
     const line = entry.gloss || scene.line;
     const note = entry.gloss ? `${t.otherBike} / ${t.original}: ${scene.line}` : `${t.otherBike}${lang === "ja" ? "：" : ": "}${card.vehicle}`;
     const button = sceneButton(card.video_id, scene.t, line, note);
+    // 本人の確認がある記録は、その言葉を小さく添える（「：」より前の日付の書き出しは省く）。
+    if (card.owner_note) {
+      const at = card.owner_note.indexOf("：");
+      button.append(el("small", "owner", t.ownerNote + (at >= 0 ? card.owner_note.slice(at + 1) : card.owner_note)));
+    }
     // 言い直しで支えを失った比較の場面は、取り下げたと見せる。
     const links = session.comparisons.filter((c) => c.card_id === entry.card_id);
     if (links.length > 0 && links.every((c) => c.status === "released")) button.classList.add("off");
@@ -248,6 +257,8 @@ function explain(texts) {
 function renderNext() {
   const step = stepOf(session.step);
   $("next").hidden = !step || lang !== "ja";
+  // 分解が要る段、または自分では確認できないと答えた後は、店に見せる1枚への出口を出す。
+  $("exit").hidden = !(step?.needs?.includes("分解") || session.cantCheck);
   if (!step) return;
   const pic = STEP_PICS[`${session.step.flow_id}/${step.id}`];
   $("next-pic").hidden = !pic;
@@ -356,7 +367,8 @@ function renderChips() {
   $("topics").replaceChildren(...t.topics.map((text) => chip(text, () => send(text))));
   // 最初は話題だけを出す。例文は入力欄の見本に任せる。
   $("examples").replaceChildren();
-  const quick = session.quick === "topics" ? t.topics : session.quick === "unsure" ? [t.unsure] : [];
+  // 質問には4つの答えをボタンで出す（前の版で保存した "unsure" も同じに扱う）。
+  const quick = session.quick === "topics" ? t.topics : session.quick === "answers" || session.quick === "unsure" ? t.answers : [];
   $("quick").replaceChildren(...quick.map((text) => chip(text, () => send(text))));
 }
 
@@ -419,10 +431,69 @@ function renderAll() {
 function sheetText() {
   const rows = (origin) => session.state.statements.filter((s) => s.origin === origin).map((s) => s.text);
   const notes = $("f-trouble").value.split("\n").map((line) => line.trim()).filter(Boolean);
-  const values = [$("f-when").value, $("f-what").value, t.bought[bought], rows("checked"), rows("heard"), notes];
-  return t.sheetLines.map((label, i) => (Array.isArray(values[i])
+  // 点検チェックの結果（全部○も）は、自分で確かめたことに足す。
+  const checked = session.checkResult ? [...rows("checked"), `${t.checkTitle}${lang === "ja" ? "：" : ": "}${session.checkResult}`] : rows("checked");
+  const values = [$("f-when").value, $("f-what").value, t.bought[bought], checked, rows("heard"), notes];
+  // 店が最初に知りたい車種を先頭に置く。
+  const bike = session.bike !== undefined ? [`${t.bikeLabel}: ${t.bikes[session.bike].replace("\n", lang === "ja" ? "" : " ")}`] : [];
+  return [...bike, ...t.sheetLines.map((label, i) => (Array.isArray(values[i])
     ? [`${label}:`, ...values[i].map((v) => `・${v}`)].join("\n")
-    : `${label}: ${values[i]}`)).join("\n");
+    : `${label}: ${values[i]}`))].join("\n");
+}
+
+// 同じ文を紙の作業票として描く。店でスマホをそのまま見せられるように、見出しは太字、・の行は箇条にする。
+function renderSheetView(text) {
+  const view = $("sheet-view");
+  view.replaceChildren();
+  let list = null;
+  for (const line of text.split("\n")) {
+    if (line.startsWith("・")) {
+      if (!list) view.append(list = el("ul", ""));
+      list.append(el("li", "", line.slice(1)));
+      continue;
+    }
+    list = null;
+    const at = line.indexOf(": ");
+    const p = el("p", "");
+    if (at >= 0) p.append(el("b", "", line.slice(0, at + 1)), line.slice(at + 1));
+    else p.append(el("b", "", line));
+    view.append(p);
+  }
+  view.hidden = false;
+}
+
+// 1枚を作る。紙の表示と、写せる文の欄の両方に出す。
+function makeSheet() {
+  const text = sheetText();
+  const output = $("sheet-text");
+  output.value = text;
+  output.hidden = false;
+  renderSheetView(text);
+  return text;
+}
+
+// 入力欄は文に合わせて1〜4行まで伸ばす。
+function fitInput() {
+  const input = $("input");
+  const style = getComputedStyle(input);
+  const pad = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+  const max = parseFloat(style.lineHeight) * 4 + pad;
+  // 空の時は1行（見本の文が折り返して欄が伸びないように）。
+  if (!input.value) {
+    input.style.height = "";
+    input.style.overflowY = "hidden";
+    return;
+  }
+  input.style.height = "auto";
+  input.style.height = `${Math.min(input.scrollHeight, max)}px`;
+  input.style.overflowY = input.scrollHeight > max ? "auto" : "hidden";
+}
+
+// 1列の幅では最新の答えの直後（答えるボタンの上）へ、広い幅では右の欄の先頭へ戻す。
+// 読む順は、答え→確かめ方→答えるボタン。
+function placeNext() {
+  if (narrow.matches) $("quick").before($("next"), $("exit"));
+  else document.querySelector(".ledger").prepend($("next"), $("exit"));
 }
 
 // 送るボタンは印だけなので、文は読み上げ用の名前に置く。
@@ -446,29 +517,38 @@ async function send(message, { fromCheck = false } = {}) {
   session.log.push({ kind: "you", text: message });
   renderLog();
   renderBike();
-  const waiting = document.createElement("p");
-  waiting.className = "waiting";
+  // 待ちの紙。秒の文は読み上げず、「やめる」ボタンだけ押せるようにする。
+  const waiting = el("div", "waiting");
+  const waitText = el("span", "");
+  waitText.setAttribute("aria-hidden", "true");
+  const controller = new AbortController();
+  aborter = controller;
+  const cancel = el("button", "plain", t.cancel);
+  cancel.type = "button";
+  cancel.onclick = () => controller.abort();
+  waiting.append(waitText, cancel);
   const started = Date.now();
-  waiting.setAttribute("aria-hidden", "true");
   // 秒は3秒を超えてから出す。「0秒」は目を引くだけで意味がない。
   const tick = () => {
     const s = Math.round((Date.now() - started) / 1000);
-    waiting.textContent = s < 3 ? `${t.waiting}…` : `${t.waiting}… ${s}${t.seconds}`;
+    waitText.textContent = s < 3 ? `${t.waiting}…` : `${t.waiting}… ${s}${t.seconds}`;
   };
   tick();
   const timer = setInterval(tick, 1000);
   $("log").append(waiting);
   waiting.scrollIntoView({ block: "nearest", behavior: calm ? "auto" : "smooth" });
+  const quickBefore = session.quick;
   session.quick = null;
   renderChips();
   // 聞き取りの途中で送った時は、送った後の欄に声の続きが入らないよう止める。
   stopListening();
   $("input").value = "";
-  // 1行の欄は横に流れるので、空にした時に左端へ戻す。
-  $("input").scrollLeft = 0;
+  // 空にしたら1行に戻す。
+  fitInput();
   try {
     const response = await fetch("/api/turn", {
       method: "POST",
+      signal: controller.signal,
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         message: bike + message,
@@ -509,7 +589,9 @@ async function send(message, { fromCheck = false } = {}) {
     const lastKey = last?.key ?? (last?.text === MESSAGES.ja.sourceOwner || last?.text === MESSAGES.en.sourceOwner ? "owner" : last ? "video" : null);
     if (sourceKey && sourceKey !== lastKey) session.log.push({ kind: "source", key: sourceKey, text: sourceKey === "owner" ? t.sourceOwner : t.sourceVideo });
     data.turn.citations.forEach((cite) => session.log.push({ kind: "cite", ...cite }));
-    session.quick = data.turn.no_evidence || data.turn.topics ? "topics" : data.turn.ask || data.turn.step ? "unsure" : null;
+    session.quick = data.turn.no_evidence || data.turn.topics ? "topics" : data.turn.ask || data.turn.step ? "answers" : null;
+    // 「自分では確認できない」と答えた後は、店に見せる1枚への出口を出す。
+    session.cantCheck = Object.values(MESSAGES).some((m) => m.answers[3] === message);
     save();
     $("announce").textContent = data.turn.reply;
     renderLog(true);
@@ -521,6 +603,16 @@ async function send(message, { fromCheck = false } = {}) {
     if (current !== turnId) return;
     session.log.pop();
     $("input").value = message;
+    fitInput();
+    // やめた時は、答えなしで送る前の状態に戻すだけ。
+    if (controller.signal.aborted) {
+      session.quick = quickBefore;
+      renderLog();
+      renderChips();
+      renderBike();
+      $("input").focus();
+      return;
+    }
     renderLog();
     session.log.push({ kind: "me", text: t[error.message] ?? t.failed });
     $("announce").textContent = t[error.message] ?? t.failed;
@@ -529,6 +621,7 @@ async function send(message, { fromCheck = false } = {}) {
   } finally {
     clearInterval(timer);
     waiting.remove();
+    if (aborter === controller) aborter = null;
     // やり直しの後に古い応答が返っても、新しい相談の送り待ちを解かない。
     if (current === turnId) {
       sending = false;
@@ -551,6 +644,7 @@ $("input").addEventListener("keydown", (event) => {
   event.preventDefault();
   $("form").requestSubmit();
 });
+$("input").addEventListener("input", fitInput);
 
 function micStatus(text, on = false) {
   $("mic-status").textContent = text;
@@ -589,6 +683,7 @@ function startListening() {
     }
     const spoken = (heard.final + heard.interim).trim();
     $("input").value = [base, spoken].filter(Boolean).join(lang === "ja" ? "" : " ").slice(0, 1000);
+    fitInput();
   };
   rec.onerror = (event) => {
     if (recognizer !== rec) return;
@@ -627,6 +722,8 @@ if (Recognition) {
 $("check-send").addEventListener("click", () => {
   const results = t.checkItems.flatMap((item, index) => (checks[index] ? [`${item} ${checks[index]}`] : []));
   const message = `${t.checkResult}：${results.join("／")}`;
+  // 1枚に入れるため、送った結果を残す（全部○でサーバーを通らない時も）。
+  session.checkResult = results.join("／");
   $("check").open = false;
   if (checks.every((mark) => !mark || mark === "○")) {
     session.log.push({ kind: "you", text: message }, { kind: "me", text: t.checkAllGood });
@@ -643,6 +740,7 @@ $("f-where").addEventListener("change", (event) => { bought = event.target.selec
 $("restart").addEventListener("click", () => {
   turnId += 1;
   sending = false;
+  aborter?.abort();
   stopListening();
   $("send").disabled = false;
   $("form").classList.remove("sending");
@@ -653,6 +751,8 @@ $("restart").addEventListener("click", () => {
   bought = 0;
   for (const id of ["f-when", "f-what", "f-trouble", "sheet-text"]) $(id).value = "";
   $("sheet-text").hidden = true;
+  $("sheet-view").hidden = true;
+  $("sheet-view").replaceChildren();
   $("copy").textContent = t.make;
   $("player").replaceChildren();
   save();
@@ -668,24 +768,39 @@ $("lang").addEventListener("change", (event) => {
 });
 
 $("copy").addEventListener("click", async () => {
-  const text = sheetText();
-  const output = $("sheet-text");
-  output.value = text;
-  output.hidden = false;
-  output.select();
+  const text = makeSheet();
+  $("sheet-text").select();
   try {
     await navigator.clipboard.writeText(text);
     $("copy").textContent = t.copied;
+    // 写せた時は紙の1枚だけを見せる。写せない時は文の欄を残して手で写せるようにする。
+    $("sheet-text").hidden = true;
   } catch {
     $("copy").textContent = t.made;
   }
 });
 
-// 台帳が取れなくても画面の言葉は出す。送ると「うまくいきませんでした」が出る。
+// 自分で開けない所の出口：1枚の欄を開いて、そこまでの内容で作る。
+$("exit-make").addEventListener("click", () => {
+  $("sheet").open = true;
+  makeSheet();
+  $("sheet-view").scrollIntoView({ block: "start", behavior: calm ? "auto" : "smooth" });
+});
+
+$("retry").addEventListener("click", () => location.reload());
+
+// 台帳を待つ前に画面の言葉を出す。取れなかった時は、もう一度読み込む出口を出す。
+renderTexts();
+placeNext();
+narrow.addEventListener("change", placeNext);
 let data = { cards: [], flows: [], draft: false };
 try {
-  data = await (await fetch("/api/cards")).json();
-} catch { /* 台帳なしで続ける */ }
+  const response = await fetch("/api/cards");
+  if (!response.ok) throw new Error("failed");
+  data = await response.json();
+} catch {
+  $("load-failed").hidden = false;
+}
 cards = data.cards ?? [];
 flows = data.flows ?? [];
 $("draft").hidden = !data.draft;

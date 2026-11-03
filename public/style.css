@@ -119,9 +119,9 @@ main { max-width: 1040px; margin: auto; padding: 16px 16px calc(var(--dock) + 24
 #mic-status { margin: 0 0 6px; }
 #mic-status.on { color: var(--tape); font-weight: 700; }
 .input-row { display: flex; align-items: center; background: var(--bench-2); }
-/* 1行で持つ。折り返すと欄が太るので、長い文は横に流す */
-.input-row textarea { flex: 1; min-width: 0; height: 48px; margin: 0; padding: 12px 0; border: 0; background: none; font: inherit; font-size: 16px; line-height: 1.5; color: var(--text); resize: none; outline: none; white-space: pre; overflow: hidden; }
-.input-row textarea::placeholder { color: var(--sub-on-bench); }
+/* 文に合わせて1〜4行まで伸びる（高さは app.js の fitInput）。ボタンは下の行にそろえる */
+.input-row textarea { flex: 1; min-width: 0; height: 48px; margin: 0; padding: 12px 0; border: 0; background: none; font: inherit; font-size: 16px; line-height: 1.5; color: var(--text); resize: none; outline: none; overflow: hidden; }
+.input-row textarea::placeholder { color: var(--sub-on-bench); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .icon-btn { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: none; color: var(--text); cursor: pointer; }
 .icon-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .icon-btn.send { background: var(--paper); color: var(--ink); }
@@ -185,7 +185,7 @@ details input:focus-visible, details select:focus-visible, details textarea:focu
 @media (min-width: 560px) { #bike-list { grid-template-columns: repeat(5, minmax(0, 1fr)); } .chip.bike img { max-width: 112px; } }
 
 /* 下の入力欄：丸い発言欄と丸いボタン。触ると縁がテープ色に光り、送っている間は下に1本の線が脈打つ */
-.input-row { position: relative; gap: 6px; min-height: 56px; padding: 4px 6px 4px 18px; border: 0; border-radius: 28px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); transition: box-shadow .2s; }
+.input-row { position: relative; align-items: flex-end; gap: 6px; min-height: 56px; padding: 4px 6px 4px 18px; border: 0; border-radius: 28px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); transition: box-shadow .2s; }
 .input-row:focus-within { box-shadow: inset 0 0 0 1.5px var(--tape); }
 .icon-btn { border-radius: 50%; transition: transform .12s; }
 .icon-btn:focus-visible { outline-offset: -2px; }
@@ -233,3 +233,25 @@ main { padding: 24px 16px calc(var(--dock) + 32px); }
 #check { margin: 24px 0; }
 .group { margin-bottom: 16px; }
 #next { margin-bottom: 32px; }
+
+/* 待ちの紙の「やめる」：右端に小さく */
+#log .waiting { display: flex; align-items: center; gap: 12px; }
+#log .waiting .plain { margin: 0 0 0 auto; min-height: 36px; flex: none; }
+#load-failed { margin: 0 0 24px; }
+#load-failed p { margin: 0; }
+#load-failed .plain { margin-top: 8px; }
+
+/* 自分で開けない所の出口：次に確かめることの下に1行とボタン */
+#exit { margin: 0 0 32px; }
+#next:not([hidden]) + #exit { margin-top: -16px; }
+#exit p { margin: 0 0 8px; font-size: 14px; line-height: 1.7; color: var(--sub-on-bench); }
+
+/* 根拠の場面に添える本人の確認 */
+.scene small.owner { grid-column: 2; margin-top: 2px; color: var(--ink); }
+
+/* 店に見せる1枚：答えと同じ紙の作業票で見せる */
+/* 上の帯（狭い幅では2行）に隠れないよう、送った時の止まる位置を下げる */
+#sheet-view { scroll-margin-top: 64px; margin-top: 12px; padding: 12px 16px; background: var(--paper); color: var(--ink); border-radius: 10px; box-shadow: 0 1px 1px rgba(0,0,0,.35), 0 10px 24px -8px rgba(0,0,0,.55); font-size: 15px; line-height: 1.7; }
+#sheet-view p { margin: 8px 0 0; }
+#sheet-view p:first-child { margin-top: 0; }
+#sheet-view ul { margin: 2px 0 0; padding-left: 1.4em; }

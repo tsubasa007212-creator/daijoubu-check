@@ -30,6 +30,7 @@
         <p class="notice"><span data-t="notice"></span><span id="draft" data-t="draft" hidden></span></p>
       </details>
     </div>
+    <div id="load-failed" hidden><p data-t="loadFailed"></p><button type="button" id="retry" class="plain" data-t="retry"></button></div>
     <div id="log"></div>
     <p id="announce" class="sr" aria-live="polite"></p>
     <div id="bike"><p data-t="bikeAsk"></p><div id="bike-list"></div></div>
@@ -52,6 +53,10 @@
       <p id="next-needs"></p>
       <details><summary data-t="cannotTell"></summary><p id="next-limit"></p></details>
     </section>
+    <div id="exit" hidden>
+      <p data-t="shopExit"></p>
+      <button type="button" id="exit-make" class="chip" data-t="shopExitButton"></button>
+    </div>
     <p class="step" data-t="ledger"></p>
     <div id="ledger"></div>
     <div id="player"></div>
@@ -66,6 +71,7 @@
       <label><span data-t="where"></span><select id="f-where"></select></label>
       <label><span data-t="trouble"></span><textarea id="f-trouble" rows="3"></textarea></label>
       <button type="button" id="copy" data-t="make"></button>
+      <div id="sheet-view" hidden></div>
       <textarea id="sheet-text" rows="6" readonly hidden></textarea>
       <p class="hint" data-t="sheetHint"></p>
     </details>
