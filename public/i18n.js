@@ -3,7 +3,7 @@ export const MESSAGES = {
   ja: {
     title: "大丈夫チェック",
     lead: "現役の整備士が確かめたことだけで答えます。確かめていないことには答えません。",
-    notice: "無料の試作です。バイクの気になることを、そのままの言葉で書いてください。動画は別の車の記録で、あなたのバイクの診断ではありません。",
+    notice: "無料の試作です。バイクの気になることを、そのままの言葉で書いてください。動画は別の車の記録で、あなたのバイクの診断ではありません。答えられなかった相談は、記録を増やすために保存します。名前や電話番号、ナンバーは書かないでください。",
     draft: "開発中：本人確認前の記録も出ています。",
     placeholder: "例：スピードが落ちてきた。大丈夫だよね？",
     send: "送る",
@@ -47,7 +47,7 @@ export const MESSAGES = {
   en: {
     title: "Daijoubu Check",
     lead: "We answer only from what a working mechanic has confirmed. We do not answer what he has not.",
-    notice: "A free prototype. Tell us what is bothering you about your bike, in your own words. The videos show other bikes. This is not a diagnosis of your bike.",
+    notice: "A free prototype. Tell us what is bothering you about your bike, in your own words. The videos show other bikes. This is not a diagnosis of your bike. Questions we cannot answer are saved so we can add to our records. Please do not write names, phone numbers, or plate numbers.",
     draft: "In development: includes records the mechanic has not confirmed yet.",
     placeholder: "e.g. It makes a noise from about 40 km/h. It's fine, right?",
     send: "Send",

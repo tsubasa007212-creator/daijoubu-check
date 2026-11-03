@@ -13,6 +13,10 @@ services:
         sync: false
       - key: STATE_SECRET
         generateValue: true
+      - key: QUESTION_URL
+        sync: false
+      - key: QUESTION_TOKEN
+        sync: false
       - key: LIMIT_HOUR
         value: "20"
       - key: LIMIT_DAY

@@ -5,7 +5,7 @@ import { extname, join } from "node:path";
 import { applyTurn, comparisons, newState, releasedCards } from "./engine.mjs";
 import { askStepOnly, checkTurn } from "./guard.mjs";
 import { createClient, readTurn } from "./claude.mjs";
-import { ALLOW_UNCHECKED, LIMIT_DAY, LIMIT_HOUR, MAX_BODY, MAX_MESSAGE, PORT, STOP_REPLY } from "./config.mjs";
+import { ALLOW_UNCHECKED, LIMIT_DAY, LIMIT_HOUR, MAX_BODY, MAX_MESSAGE, PORT, sendQuestion, STOP_REPLY } from "./config.mjs";
 import { createLimiter, isValidState, trimState } from "./limits.mjs";
 import { isSealed, seal } from "./seal.mjs";
 
@@ -17,13 +17,16 @@ const client = createClient();
 const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8" };
 const allowed = createLimiter({ perHour: LIMIT_HOUR, perDay: LIMIT_DAY });
 
+// 手元の控えに書き、外の保存先へも送る。送信は待たないので、相談の返答を遅らせない。
 function logQuestion(message) {
+  const entry = { at: new Date().toISOString(), message };
   try {
     mkdirSync("private", { recursive: true });
-    appendFileSync("private/questions.jsonl", JSON.stringify({ at: new Date().toISOString(), message }) + "\n");
+    appendFileSync("private/questions.jsonl", JSON.stringify(entry) + "\n");
   } catch (error) {
     console.warn("question log", error.message);
   }
+  sendQuestion(entry);
 }
 
 // 検査に落ちたら理由を添えて1回だけやり直し、それでも駄目なら止める。止めても相談者の発言は台帳に残す。
