@@ -182,7 +182,7 @@ export const MESSAGES = {
     original: "Original",
     repair: "If you fix it yourself: work scenes",
     ownerWords: "Otani's words",
-    ownerNote: "Otani's note (Japanese): ",
+    ownerNote: "Otani's note: ",
     workScene: "Work scene (Japanese)",
     topics: ["It won't go fast", "The engine won't start", "It makes a strange noise", "The engine runs but it won't move", "Smoke or a fuel smell", "Worried about brakes, steering, or tires", "When to change the oil"],
     checkTitle: "Beginner's bike check",

@@ -87,7 +87,8 @@
         "line": "自分でやると、壊してしまうこともあります。"
       }
     },
-    "owner_note": "大谷本人の確認（2026-11-02）：04:59の緩さは映像で分かる。悪かったのは、よく摩耗するブッシュ。摩耗してガタが出ていた。もう一方のベアリングは回転に問題なかった。結局両方交換した。"
+    "owner_note": "大谷本人の確認（2026-11-02）：04:59の緩さは映像で分かる。悪かったのは、よく摩耗するブッシュ。摩耗してガタが出ていた。もう一方のベアリングは回転に問題なかった。結局両方交換した。",
+    "owner_note_en": "The looseness at 04:59 can be seen in the video. The bad part was the bushing, which wears often; it was worn and had play. The other bearing turned without problems. In the end both were replaced."
   },
   {
     "id": "o49-speed",
@@ -139,7 +140,8 @@
       "t": "12:36",
       "line": "取り外しから"
     },
-    "owner_note": "大谷本人の確認（2026-11-03）：異音の発生源は大きいベアリングより小さいベアリング。真ちゅうも音の元。"
+    "owner_note": "大谷本人の確認（2026-11-03）：異音の発生源は大きいベアリングより小さいベアリング。真ちゅうも音の元。",
+    "owner_note_en": "The noise came more from the small bearing than the large one. The brass part was also a source of the noise."
   },
   {
     "id": "vhk-engine",
@@ -210,7 +212,8 @@
       "t": "09:29",
       "line": "ベアリングを抜きます。"
     },
-    "owner_note": "大谷本人の確認（2026-11-03）：07:39で外したのは駆動系。駆動系を外してエンジンをかけ、静かなことを確かめた。"
+    "owner_note": "大谷本人の確認（2026-11-03）：07:39で外したのは駆動系。駆動系を外してエンジンをかけ、静かなことを確かめた。",
+    "owner_note_en": "What was removed at 07:39 was the drive system. With it removed, the engine was started and found to be quiet."
   },
   {
     "id": "m2q-push",
@@ -268,7 +271,8 @@
       "t": "00:39",
       "line": "ベアリングを抜きます。"
     },
-    "owner_note": "大谷本人の確認（2026-11-03）：08:25の無音は、クラッチASSYをシャフトに入れて回転させて確認した。"
+    "owner_note": "大谷本人の確認（2026-11-03）：08:25の無音は、クラッチASSYをシャフトに入れて回転させて確認した。",
+    "owner_note_en": "The silence at 08:25 was checked by putting the clutch assembly on the shaft and turning it."
   },
   {
     "id": "1nu-mileage",
@@ -411,7 +415,8 @@
       "t": "02:32",
       "line": "そろそろ真剣に開けていきます。"
     },
-    "owner_note": "大谷本人の確認（2026-11-03）：25:27のベアリングがお客さんの聞いた大きな音の元かは、この場面では分からない。"
+    "owner_note": "大谷本人の確認（2026-11-03）：25:27のベアリングがお客さんの聞いた大きな音の元かは、この場面では分からない。",
+    "owner_note_en": "From this scene alone, it cannot be told whether the bearing at 25:27 was the loud noise the customer heard."
   },
   {
     "id": "n9b-forty",
@@ -502,7 +507,8 @@
       "t": "02:06",
       "line": "開けて確認します。"
     },
-    "owner_note": "「外まで動くはず」で動くのはベルト（大谷の確認 2026-11-03）"
+    "owner_note": "「外まで動くはず」で動くのはベルト（大谷の確認 2026-11-03）",
+    "owner_note_en": "What should move \"all the way out\" is the belt."
   },
   {
     "id": "lk6-price",
@@ -633,7 +639,8 @@
       "t": "01:48",
       "line": "ホイールを外します。"
     },
-    "owner_note": "「5万円で買い、修理代が10万円ということも珍しくありません」は今も言える（大谷の確認 2026-11-03）"
+    "owner_note": "「5万円で買い、修理代が10万円ということも珍しくありません」は今も言える（大谷の確認 2026-11-03）",
+    "owner_note_en": "\"Buying for 50,000 yen and paying 100,000 yen for repairs is not unusual\" is still true today."
   },
   {
     "id": "rxc-battery",
@@ -730,7 +737,8 @@
       "t": "02:27",
       "line": "外しましょう。"
     },
-    "owner_note": "大谷本人の確認（2026-11-03）：03:14〜03:23でエンジンは始動している。"
+    "owner_note": "大谷本人の確認（2026-11-03）：03:14〜03:23でエンジンは始動している。",
+    "owner_note_en": "The engine starts at 03:14 to 03:23."
   },
   {
     "id": "33h-belt",
@@ -848,7 +856,8 @@
       "t": "04:41",
       "line": "外します。"
     },
-    "owner_note": "交換した部品は、ベルト、プーリー、ウェイトローラー、スライドピース、フェイス（大谷の確認 2026-11-03）"
+    "owner_note": "交換した部品は、ベルト、プーリー、ウェイトローラー、スライドピース、フェイス（大谷の確認 2026-11-03）",
+    "owner_note_en": "Parts replaced: belt, pulley, weight rollers, slide pieces, face."
   },
   {
     "id": "6uo-rough",
@@ -1150,7 +1159,8 @@
       "00:31と00:47の症状と進行の話は一般の説明。この車両はまだ初期症状と言っており、今後動かなくなるかは語られていない",
       "相談者の車も同じとは言えない"
     ],
-    "owner_note": "大谷本人の確認（2026-11-03）：01:27の「温まれば大丈夫だと言うんです」はお客さんの話。"
+    "owner_note": "大谷本人の確認（2026-11-03）：01:27の「温まれば大丈夫だと言うんです」はお客さんの話。",
+    "owner_note_en": "\"He says it is fine once it warms up\" at 01:27 is what the customer said."
   },
   {
     "id": "n8t-start",
@@ -1246,7 +1256,8 @@
       "t": "08:00",
       "line": "場面を変えて、次へ進みます。"
     },
-    "owner_note": "動画の字幕は「横になって」だが、09:00ごろの映像は、横になっていたというよりウェイトローラーの破損（大谷の確認 2026-11-03）"
+    "owner_note": "動画の字幕は「横になって」だが、09:00ごろの映像は、横になっていたというよりウェイトローラーの破損（大谷の確認 2026-11-03）",
+    "owner_note_en": "The subtitle says \"lying down\", but the video around 09:00 shows broken weight rollers rather than ones lying down."
   },
   {
     "id": "ohs-oil",
@@ -1387,7 +1398,8 @@
       "煙の出方の結果は字幕にない（映像で確認）",
       "相談者の車も同じとは言えない"
     ],
-    "owner_note": "大谷本人の確認（2026-11-03）：11:48のカチカチ音は、オイルを入れた後も変わらない。異音は大きい。"
+    "owner_note": "大谷本人の確認（2026-11-03）：11:48のカチカチ音は、オイルを入れた後も変わらない。異音は大きい。",
+    "owner_note_en": "The clicking at 11:48 did not change after adding oil. The noise is loud."
   },
   {
     "id": "cbj-rust",
@@ -1774,7 +1786,8 @@
       "t": "14:29",
       "line": "シリンダーを抜きます。"
     },
-    "owner_note": "大谷本人の確認（2026-11-03）：組み上げ直後にエンジンは始動した。"
+    "owner_note": "大谷本人の確認（2026-11-03）：組み上げ直後にエンジンは始動した。",
+    "owner_note_en": "The engine started right after it was put back together."
   },
   {
     "id": "97b-wire",
@@ -1872,7 +1885,8 @@
       }
     },
     "source": "auto-transcript",
-    "owner_note": "大谷本人の確認（2026-11-03）：02:20はタイヤを手で回して、奥のギアが回るかを見ている。"
+    "owner_note": "大谷本人の確認（2026-11-03）：02:20はタイヤを手で回して、奥のギアが回るかを見ている。",
+    "owner_note_en": "At 02:20 he turns the tire by hand to see whether the inner gear turns."
   },
   {
     "id": "lcu-asis",
@@ -2104,7 +2118,8 @@
       }
     },
     "source": "auto-transcript",
-    "owner_note": "大谷本人の確認（2026-11-03）：誰かが確認済みで、メーターワイヤー自体が無くなっていた。"
+    "owner_note": "大谷本人の確認（2026-11-03）：誰かが確認済みで、メーターワイヤー自体が無くなっていた。",
+    "owner_note_en": "Someone had already checked it, and the meter cable itself was missing."
   },
   {
     "id": "3jd-gear",
@@ -2205,7 +2220,8 @@
       }
     },
     "source": "auto-transcript",
-    "owner_note": "大谷本人の確認（2026-11-03）：メーターギアもワイヤーも駄目だった。"
+    "owner_note": "大谷本人の確認（2026-11-03）：メーターギアもワイヤーも駄目だった。",
+    "owner_note_en": "Both the meter gear and the cable were bad."
   },
   {
     "id": "hcd-clutch",
@@ -3003,7 +3019,8 @@
       "t": "00:41",
       "line": "このネジを回していけばブレーキが効くようになります"
     },
-    "owner_note": "この動画で合っている（大谷の確認 2026-11-03）。ドラムブレーキなら調整できる。"
+    "owner_note": "この動画で合っている（大谷の確認 2026-11-03）。ドラムブレーキなら調整できる。",
+    "owner_note_en": "This video is the right one. Drum brakes can be adjusted."
   },
   {
     "id": "apd-stored",
@@ -3702,7 +3719,8 @@
       "t": "02:04",
       "line": "初期型ですか。見ていきます。"
     },
-    "owner_note": "大谷本人の確認（2026-11-03）：00:29の「ベルト切れは間違いありません」は、エンジンは始動するが動力が伝わらない様子から判断した。"
+    "owner_note": "大谷本人の確認（2026-11-03）：00:29の「ベルト切れは間違いありません」は、エンジンは始動するが動力が伝わらない様子から判断した。",
+    "owner_note_en": "\"The belt is definitely broken\" at 00:29 was judged from the engine starting but no power reaching the wheel."
   },
   {
     "id": "csb-kit",

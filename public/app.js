@@ -34,6 +34,7 @@ let listening = false;
 let aborter = null;
 // 待ちの紙。言語を変えて描き直しても消えないよう、ここに持つ。
 let pending = null;
+let pendingEntry = null;
 // 相談の台帳と流れを読み込み終えたか。
 let loaded = false;
 // 1列の幅では「次に確かめること」を最新の答えのすぐ下に移す。
@@ -50,7 +51,9 @@ function emptySession() {
 // 保存できない環境でも相談は続ける。
 function save() {
   try {
-    sessionStorage.setItem(STORE_KEY, JSON.stringify(session));
+    // 送っている途中の発言は保存しない（やめた発言が読み込み直しで戻らないように）。
+    const log = session.log.filter((entry) => entry !== pendingEntry);
+    sessionStorage.setItem(STORE_KEY, JSON.stringify({ ...session, log }));
   } catch { /* 保存なしで続ける */ }
 }
 
@@ -217,10 +220,11 @@ function renderEntry(entry, index, view) {
     const note = entry.gloss ? `${t.otherBike} / ${t.original}: ${scene.line}` : `${t.otherBike}${lang === "ja" ? "：" : ": "}${card.vehicle}`;
     const button = sceneButton(card.video_id, scene.t, line, note);
     // 本人の確認がある記録は、その言葉を小さく添える（「：」より前の日付の書き出しは省く）。
-    // 本人の確認は日本語だけなので、日本語の画面でだけ添える。
-    if (card.owner_note && lang === "ja") {
-      const at = card.owner_note.indexOf("：");
-      button.append(el("small", "owner", t.ownerNote + (at >= 0 ? card.owner_note.slice(at + 1) : card.owner_note)));
+    // 英語の画面では、本人の確認を訳した文（owner_note_en）を添える。
+    const ownerNote = lang === "ja" ? card.owner_note : card.owner_note_en;
+    if (ownerNote) {
+      const at = lang === "ja" ? ownerNote.indexOf("：") : -1;
+      button.append(el("small", "owner", t.ownerNote + (at >= 0 ? ownerNote.slice(at + 1) : ownerNote)));
     }
     // 言い直しで支えを失った比較の場面は、取り下げたと見せる。
     const links = session.comparisons.filter((c) => c.card_id === entry.card_id);
@@ -518,6 +522,8 @@ function makeSheet({ again = false } = {}) {
 function refreshSheet(changed) {
   if (!session.sheetMade) return;
   makeSheet({ again: true });
+  // 中身が変わったら、写したのは古い版なので「写しました」を戻す。
+  $("copy").textContent = t.make;
   $("sheet-note").hidden = !changed;
   if (changed) $("sheet-note").textContent = t.sheetChanged;
 }
@@ -569,10 +575,15 @@ async function send(message, { fromCheck = false, allGood = false } = {}) {
   $("form").classList.add("sending");
   setSend(t.sending);
   const first = !session.signature;
+  // 返答は送った時の言語で届くので、その言語を覚えておく（待ち中に言語を変えても取り違えない）。
+  const askedLang = lang;
+  // 全○の決まった文は、最初の点検の時だけ使う。相談の途中では、残っている不調や次の確認を上書きしない。
+  const plainGood = allGood && first;
   const bike = first && session.bike !== undefined ? `（${MESSAGES.ja.bikeLabel}：${MESSAGES.ja.bikes[session.bike].replace("\n", "")}）` : "";
   // 失敗した時に消すのは、この送信の行だけ（末尾の別の行を消さない）。
   const mine = { kind: "you", text: message };
   session.log.push(mine);
+  pendingEntry = mine;
   // 待ちの紙。秒の文は読み上げず、「やめる」ボタンだけ押せるようにする。
   const waiting = el("div", "waiting");
   const waitText = el("span", "");
@@ -610,6 +621,8 @@ async function send(message, { fromCheck = false, allGood = false } = {}) {
     const at = session.log.lastIndexOf(mine);
     if (at >= 0) session.log.splice(at, 1);
     session.quick = quickBefore;
+    pendingEntry = null;
+    save();
     if (!fromCheck && !$("input").value.trim()) {
       $("input").value = message;
       fitInput();
@@ -626,7 +639,7 @@ async function send(message, { fromCheck = false, allGood = false } = {}) {
         signature: session.signature,
         previousReply: session.lastReply,
         cannotOpen: session.cannotOpen === true,
-        lang,
+        lang: askedLang,
       }),
     });
     if (!response.ok) throw new Error(response.status === 429 ? "busy" : "failed");
@@ -638,11 +651,11 @@ async function send(message, { fromCheck = false, allGood = false } = {}) {
     const wasActive = new Set(session.comparisons.filter((c) => c.status === "active").map((c) => c.card_id));
     session.state = data.state;
     session.signature = data.signature;
-    session.lastReply = turn.reply;
-    session.step = allGood ? null : turn.step ?? null;
+    session.lastReply = plainGood ? t.checkAllGood : turn.reply;
+    session.step = plainGood ? null : turn.step ?? null;
     session.comparisons = data.comparisons;
     // 英語などでは、次に確かめることの訳を、その言語の印と一緒に持つ。
-    session.stepNote = turn.step_note?.how ? { ...turn.step_note, lang } : null;
+    session.stepNote = turn.step_note?.how ? { ...turn.step_note, lang: askedLang } : null;
     // 「部品を外せない」は、相談者が言い直すまで持ち越す（返答に無い時は前の値を保つ）。
     if (typeof turn.cannot_open === "boolean") session.cannotOpen = turn.cannot_open;
     // 読み取った発言は、その相談のすぐ下に札で並べる。言い直しで移った札は、移る前の分け方も見せる。
@@ -656,10 +669,10 @@ async function send(message, { fromCheck = false, allGood = false } = {}) {
       if (!stillActive.has(id)) session.log.push({ kind: "move", text: lang === "ja" ? `${t.released}「${recordName(cardOf(id))}」` : t.released });
     }
     // 点検の結果で止まった時は、結果を残せる先を添える。
-    const noGuide = fromCheck && !allGood && turn.no_evidence ? `\n${t.checkNoGuide}` : "";
-    const reply = allGood ? t.checkAllGood : turn.reply + noGuide;
+    const noGuide = fromCheck && !plainGood && turn.no_evidence ? `\n${t.checkNoGuide}` : "";
+    const reply = plainGood ? t.checkAllGood : turn.reply + noGuide;
     session.log.push({ kind: "me", text: reply });
-    if (!allGood) {
+    if (!plainGood) {
       const step = stepOf(session.step);
       // 出所は変わった時だけ出して、毎回同じ文が並ばないようにする。
       const sourceKey = step ? (step.source === "owner" ? "owner" : "video") : null;
@@ -668,12 +681,16 @@ async function send(message, { fromCheck = false, allGood = false } = {}) {
       if (sourceKey && sourceKey !== lastKey) session.log.push({ kind: "source", key: sourceKey, text: sourceKey === "owner" ? t.sourceOwner : t.sourceVideo });
       turn.citations.forEach((cite) => session.log.push({ kind: "cite", ...cite }));
     }
-    session.quick = allGood || turn.no_evidence || turn.topics ? "topics" : turn.ask || turn.step ? "answers" : null;
+    session.quick = plainGood || turn.no_evidence || turn.topics ? "topics" : turn.ask || turn.step ? "answers" : null;
     session.answerKind = turn.answer_kind ?? "yes_no";
     session.choices = Array.isArray(turn.choices) ? turn.choices.slice(0, 4) : [];
     // 「自分では確認できない」と答えた後、または部品を外せないと分かった後は、店に見せる1枚への出口を残す。
     session.cantCheck = session.cantCheck || Object.values(MESSAGES).some((m) => m.answers[3] === message) || session.cannotOpen === true;
+    pendingEntry = null;
+    // 送った点検の印は消す。古い○を次の点検で送り直さないように。
+    if (fromCheck) checks = [];
     save();
+    renderCheck();
     $("announce").textContent = reply;
     pending = null;
     renderLog(true);
@@ -705,6 +722,7 @@ async function send(message, { fromCheck = false, allGood = false } = {}) {
     renderBike();
     return false;
   } finally {
+    if (pendingEntry === mine) pendingEntry = null;
     clearInterval(timer);
     waiting.remove();
     if (pending?.node === waiting) pending = null;
@@ -818,9 +836,9 @@ $("check-send").addEventListener("click", async () => {
 });
 
 // 1枚の欄は打つたびに保存し、読み込み直しても消えないようにする。
-$("f-where").addEventListener("change", (event) => { session.form.bought = event.target.selectedIndex; save(); });
+$("f-where").addEventListener("change", (event) => { session.form.bought = event.target.selectedIndex; save(); refreshSheet(false); });
 for (const [id, key] of [["f-when", "when"], ["f-what", "what"], ["f-trouble", "trouble"]]) {
-  $(id).addEventListener("input", (event) => { session.form[key] = event.target.value; save(); });
+  $(id).addEventListener("input", (event) => { session.form[key] = event.target.value; save(); refreshSheet(false); });
 }
 
 // 別の車の相談へ移った時に混ざらないよう、入力欄・1枚の欄・点検も空に戻す。

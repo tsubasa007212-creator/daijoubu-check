@@ -97,9 +97,9 @@ main { max-width: 1040px; margin: auto; padding: 16px 16px calc(var(--dock) + 24
 .scene.off .pic svg { opacity: .5; }
 .scene.off .line { text-decoration: line-through; text-decoration-color: var(--ink); text-decoration-thickness: 2px; }
 /* 台の上に出る場面（自分で直す人へ）は台の色で */
-#repair-list .scene { margin: 0 0 12px; color: var(--text); }
-#repair-list .scene .t { color: var(--tape); border-color: var(--steel); }
-#repair-list .scene small { color: var(--sub-on-bench); }
+#repair-list .scene, #next-scene .scene { margin: 0 0 12px; color: var(--text); }
+#repair-list .scene .t, #next-scene .scene .t { color: var(--tape); border-color: var(--steel); }
+#repair-list .scene small, #next-scene .scene small { color: var(--sub-on-bench); }
 
 /* 話題や車種のボタン */
 .chip { font: inherit; font-size: 15px; color: var(--text); text-align: left; cursor: pointer; }
