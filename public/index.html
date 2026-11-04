@@ -30,7 +30,7 @@
         <p class="notice"><span data-t="notice"></span><span id="draft" data-t="draft" hidden></span></p>
       </details>
     </div>
-    <div id="load-failed" hidden><p data-t="loadFailed"></p><button type="button" id="retry" class="plain" data-t="retry"></button></div>
+    <div id="load-failed" role="alert" hidden><p data-t="loadFailed"></p><button type="button" id="retry" class="plain" data-t="retry"></button></div>
     <div id="log"></div>
     <p id="announce" class="sr" aria-live="polite"></p>
     <div id="bike"><p data-t="bikeAsk"></p><p id="loading" class="hint" data-t="loading" hidden></p><div id="bike-list"></div></div>
@@ -48,10 +48,12 @@
     <section id="next" hidden>
       <p class="step" data-t="nextTitle"></p>
       <img id="next-pic" alt="" width="640" height="640" hidden>
+      <p id="next-lang" class="hint" hidden></p>
       <p id="next-how"></p>
+      <p id="next-needs"></p>
+      <p id="next-view" hidden></p>
       <p id="next-source" class="hint"></p>
       <div id="next-scene"></div>
-      <p id="next-needs"></p>
       <details><summary data-t="cannotTell"></summary><p id="next-limit"></p></details>
     </section>
     <div id="exit" hidden>

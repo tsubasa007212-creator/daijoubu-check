@@ -37,6 +37,7 @@ let pending = null;
 let pendingEntry = null;
 // 相談の台帳と流れを読み込み終えたか。
 let loaded = false;
+let loadFailed = false;
 // 1列の幅では「次に確かめること」を最新の答えのすぐ下に移す。
 const narrow = matchMedia("(max-width: 800px)");
 
@@ -125,11 +126,31 @@ function sayNode(text) {
   const p = el("p", "say");
   const asked = text.match(/((?:[^。？?\n]+(?:か。|[？?])\s*)+)$/);
   if (!asked || asked.index === 0) {
-    p.textContent = text;
+    p.append(...linked(text));
     return p;
   }
-  p.append(text.slice(0, asked.index).trimEnd(), el("span", "ask", asked[1].trim()));
+  const ask = el("span", "ask");
+  ask.append(...linked(asked[1].trim()));
+  p.append(...linked(text.slice(0, asked.index).trimEnd()), ask);
   return p;
+}
+
+// 自分たちの頁と動画の URL だけを押せるようにする。ほかの URL は文字のまま。
+const LINKABLE = /https:\/\/(?:wing-canopy\.com|youtu\.be|www\.youtube\.com)\/[^\s）」、。]*/g;
+function linked(text) {
+  const nodes = [];
+  let at = 0;
+  for (const match of text.matchAll(LINKABLE)) {
+    nodes.push(text.slice(at, match.index));
+    const a = el("a", "", match[0]);
+    a.href = match[0];
+    a.target = "_blank";
+    a.rel = "noopener";
+    nodes.push(a);
+    at = match.index + match[0].length;
+  }
+  nodes.push(text.slice(at));
+  return nodes;
 }
 
 // 相談の節の見出し。言い直しが起きた往復（札が移った、または文が変わった）は「言い直し」と出す。
@@ -270,11 +291,14 @@ function explain(texts) {
   }));
 }
 
-// 流れの本文は日本語だけ。他の言語では、その確認を訳した文（step_note）が届いた時だけ出す。
+// 流れの本文は日本語だけ。他の言語では、その確認を訳した文（step_note）が届いた時はそれを出し、
+// 届いていない時（日本語で聞いたあとに言語を変えた時など）は、日本語のまま出してそう添える（黙って消さない）。
 function renderNext() {
   const step = stepOf(session.step);
   const note = lang === "ja" ? null : session.stepNote?.lang === lang && session.stepNote.how ? session.stepNote : null;
-  $("next").hidden = !step || (lang !== "ja" && !note);
+  $("next").hidden = !step;
+  $("next-lang").hidden = lang === "ja" || Boolean(note);
+  $("next-lang").textContent = t.jaOnly ?? "";
   // 工具や分解が要る段、または自分では確かめられないと分かった後は、店に見せる1枚への出口を出す。
   const tool = Boolean(step?.needs) && step.needs !== "工具なし";
   $("exit").hidden = !(tool || session.cantCheck || session.cannotOpen);
@@ -288,8 +312,11 @@ function renderNext() {
   const pic = STEP_PICS[`${session.step.flow_id}/${step.id}`];
   $("next-pic").hidden = !pic;
   if (pic) $("next-pic").src = `img/${pic}.webp`;
-  const [how, limit] = note ? [note.how, note.cannot_tell] : explain([step.how, step.cannot_tell]);
-  $("next-how").textContent = how;
+  const [how, limit, view] = note ? [note.how, note.cannot_tell, note.view] : explain([step.how, step.cannot_tell, step.view ?? ""]);
+  $("next-how").replaceChildren(...linked(how));
+  // 整備士の見立てやすすめ（交換など）は、相談者が今する確認と分けて出す。必要なものは確認の方にだけかかる。
+  $("next-view").hidden = !view;
+  $("next-view").replaceChildren(el("span", "label", `${t.viewLabel}${lang === "ja" ? "：" : ": "}`), ...linked(view ?? ""));
   $("next-source").textContent = step.source === "owner" ? t.sourceOwner : t.sourceVideo;
   // 動画に残っている確認は、その場面を開けるようにする（記録カードにない動画もあるため）。
   $("next-scene").replaceChildren(...(step.video_id
@@ -403,7 +430,9 @@ function renderChips() {
   // 選ぶ問いはその選択肢、言葉で答える問いは「分からない」と「自分では確認できない」だけ（あとは入力欄へ）。
   // 前の版で保存した "unsure" も同じに扱う。
   const asked = session.quick === "answers" || session.quick === "unsure";
-  const kind = session.answerKind ?? "yes_no";
+  // 選択肢が別の言語の時は、その言語の文を出さず、言葉で答える形にする（ボタンの言語をそろえる）。
+  const otherLang = session.choicesLang && session.choicesLang !== lang;
+  const kind = session.answerKind === "choice" && otherLang ? "free" : session.answerKind ?? "yes_no";
   const quick = session.quick === "topics" ? t.topics
     : !asked ? []
     : kind === "choice" && session.choices?.length ? [...new Set([...session.choices, t.dontKnow, t.answers[3]])]
@@ -432,23 +461,38 @@ function renderCheck() {
       button.setAttribute("aria-pressed", String(checks[index] === mark));
       // 押した行だけ更新する。作り直すとキーボードの焦点が外れて次の項目へ進めない。
       button.onclick = () => {
+        if (sending) return;
         checks[index] = checks[index] === mark ? undefined : mark;
         row.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.textContent === checks[index])));
-        $("check-send").disabled = sending || !checks.some(Boolean);
+        $("check-send").disabled = sending || !ready() || !checks.some(Boolean);
       };
       row.append(button);
     }
     list.append(row);
   });
-  $("check-send").disabled = sending || !checks.some(Boolean);
+  lockChecks();
+}
+
+// 送っている間は印も変えられないようにする。成功した時に印を消すので、待ちの間に付けた印まで消えないように。
+function lockChecks() {
+  $("check-list").querySelectorAll("button").forEach((button) => { button.disabled = sending; });
+  $("check-send").disabled = sending || !ready() || !checks.some(Boolean);
+}
+
+// 記録を読み終えるまでと、読めなかった時は相談を送らない（次に確かめることや根拠が出せないため）。
+function ready() {
+  return loaded && !loadFailed;
 }
 
 function renderTexts() {
   document.documentElement.lang = lang;
   document.title = t.title;
   document.querySelectorAll("[data-t]").forEach((node) => { node.textContent = t[node.dataset.t]; });
-  $("input").placeholder = t.placeholder;
+  // 記録を読み終えるまでは送れない。どの画面にいても分かるよう、入力欄の見本の所にも出す。
+  $("input").placeholder = ready() ? t.placeholder : loadFailed ? t.loadFailed : t.loading;
+  $("input").setAttribute("aria-label", t.inputLabel);
   setSend(sending ? t.sending : t.send);
+  $("send").disabled = sending || !ready();
   $("mic").setAttribute("aria-label", listening ? t.micStop : t.mic);
   $("mic").title = listening ? t.micStop : t.mic;
   $("f-where").replaceChildren(...t.bought.map((text) => new Option(text)));
@@ -569,12 +613,18 @@ async function send(message, { fromCheck = false, allGood = false } = {}) {
     micStatus(t.waitFirst);
     return false;
   }
+  if (!ready()) {
+    const text = loadFailed ? t.loadFailed : t.loading;
+    $("announce").textContent = text;
+    micStatus(text);
+    return false;
+  }
   sending = true;
   turnId += 1;
   const current = turnId;
   const button = $("send");
   button.disabled = true;
-  $("check-send").disabled = true;
+  lockChecks();
   $("form").classList.add("sending");
   setSend(t.sending);
   const first = !session.signature;
@@ -687,6 +737,8 @@ async function send(message, { fromCheck = false, allGood = false } = {}) {
     session.quick = plainGood || turn.no_evidence || turn.topics ? "topics" : turn.ask || turn.step ? "answers" : null;
     session.answerKind = turn.answer_kind ?? "yes_no";
     session.choices = Array.isArray(turn.choices) ? turn.choices.slice(0, 4) : [];
+    // 選択肢の文は答えた時の言語なので、その言語を覚えておく（言語を変えたら古い言語のボタンを出さない）。
+    session.choicesLang = askedLang;
     // 「自分では確認できない」と答えた後、または部品を外せないと分かった後は、店に見せる1枚への出口を残す。
     session.cantCheck = session.cantCheck || Object.values(MESSAGES).some((m) => m.answers[3] === message) || session.cannotOpen === true;
     pendingEntry = null;
@@ -733,8 +785,8 @@ async function send(message, { fromCheck = false, allGood = false } = {}) {
     // やり直しの後に古い応答が返っても、新しい相談の送り待ちを解かない。
     if (current === turnId) {
       sending = false;
-      button.disabled = false;
-      $("check-send").disabled = sending || !checks.some(Boolean);
+      button.disabled = !ready();
+      lockChecks();
       $("form").classList.remove("sending");
       setSend(t.send);
       micStatus("");
@@ -835,7 +887,9 @@ $("check-send").addEventListener("click", async () => {
   const allGood = checks.every((mark) => !mark || mark === "○");
   $("check").open = false;
   // 送れなかった時は、点検の欄を開き直して、付けた印をそのまま残す。
-  if (!(await send(message, { fromCheck: true, allGood }))) $("check").open = true;
+  // 待ちの間に「最初からやり直す」を押した時は、新しい相談の点検を開かない。
+  const asked = session;
+  if (!(await send(message, { fromCheck: true, allGood })) && session === asked) $("check").open = true;
 });
 
 // 1枚の欄は打つたびに保存し、読み込み直しても消えないようにする。
@@ -851,7 +905,7 @@ $("restart").addEventListener("click", () => {
   pending = null;
   aborter?.abort();
   stopListening();
-  $("send").disabled = false;
+  $("send").disabled = !ready();
   $("form").classList.remove("sending");
   setSend(t.send);
   session = emptySession();
@@ -879,6 +933,8 @@ $("lang").addEventListener("change", (event) => {
   // 聞き取りの言語は始めた時に決まるので、言語を変えたら止める。
   stopListening();
   renderAll();
+  // 作ってあった1枚も、見出しを新しい言語で作り直す。
+  refreshSheet(false);
 });
 
 $("copy").addEventListener("click", async () => {
@@ -918,6 +974,7 @@ try {
   if (!response.ok) throw new Error("failed");
   data = await response.json();
 } catch {
+  loadFailed = true;
   $("load-failed").hidden = false;
 }
 loaded = true;

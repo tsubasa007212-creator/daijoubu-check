@@ -59,8 +59,8 @@ export const TURN_SCHEMA = {
     choices: { type: "array", items: { type: "string" } },
     cannot_open: { type: "boolean" },
     step_note: {
-      type: "object", additionalProperties: false, required: ["how", "needs", "cannot_tell"],
-      properties: { how: { type: "string" }, needs: { type: "string" }, cannot_tell: { type: "string" } },
+      type: "object", additionalProperties: false, required: ["how", "needs", "cannot_tell", "view"],
+      properties: { how: { type: "string" }, needs: { type: "string" }, cannot_tell: { type: "string" }, view: { type: "string" } },
     },
   },
 };
@@ -96,11 +96,12 @@ link は「今この記録と比べている」という意味で、部品が同
 車種が分かる時は scope を見る。scope が gyro の流れやカードを別の車種に使う時は、ジャイロの記録だと言う。scope が scooter の流れは、スクーターの相談にだけ使う。大谷が見ていない車種について、同じだとは言わない。流れの how で車種を限った話（「ジャイロキャノピーだと」など）は、その車種の相談にだけ使い、ほかの車種では「〜の場合は」と車種を付けて言う。
 ジャイロキャノピーの名前は、previous_reply にまだ出ていない初回だけ「ジャイロキャノピー（屋根つきの3輪スクーター）」と添える。
 カードの owner_note は大谷の確認で、字幕より優先する。
+流れの段に view がある時、how は相談者が今する確認、view は大谷の見立てやすすめ（交換など）。view も how と同じく自分たちの言葉として reply に使ってよい。needs は how の確認にだけかかり、view の作業にはかからない。view の作業（交換など）を、相談者が今する確認として頼まない。
 
 ## 言語
 reply、added の text、gloss は、入力の language で書く（"en" なら、相談者が日本語で書いていても英語。"ja" なら日本語）。英語では "you should"、"take it to"、"it is fine/safe"、"please replace/repair" を使わず、"It is best to ..."、"A mechanic can check ..." のように言う。カードは日本語のまま読み、内容を足さずに訳す。
 language が "ja" なら gloss は空にする。他の言語なら gloss に、引いた場面の言葉の訳を入れる。
-language が "ja" 以外で step を入れた時は、step_note にその確認の how・needs・cannot_tell を、内容を足さずに language の言語へ訳して入れる。"ja" の時と step がない時は、3つとも空文字にする。
+language が "ja" 以外で step を入れた時は、step_note にその確認の how・needs・cannot_tell・view を、内容を足さずに language の言語へ訳して入れる（view がない段は空文字）。"ja" の時と step がない時は、4つとも空文字にする。
 
 ## 点検の結果
 「点検の結果：エンジンはすぐかかる？ ○／ブレーキを握ると、いつも通り止まれる？ × 」の形は、相談者が自分で見た結果。○・△・×は checked に、？は unknown に、何を見てどうだったかが分かる文で入れる（例：「ブレーキを握ると、いつも通り止まれた（点検で○）」）。×を先に扱い、点検の流れへつなぐ。「大丈夫です」とは言わない。全部○の時は kind を checkup にする。
