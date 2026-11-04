@@ -295,7 +295,10 @@ function renderNext() {
   $("next-scene").replaceChildren(...(step.video_id
     ? [sceneButton(step.video_id, step.t, lang === "ja" ? step.line : t.stepVideo, lang === "ja" ? t.stepVideo : "")]
     : []));
-  $("next-needs").textContent = `${t.needs}${lang === "ja" ? "：" : ": "}${note ? note.needs : step.needs}`;
+  const needs = note ? note.needs : step.needs;
+  // 訳に必要なものが無い時は、空の行を出さない。
+  $("next-needs").hidden = !needs;
+  $("next-needs").textContent = `${t.needs}${lang === "ja" ? "：" : ": "}${needs}`;
   $("next-limit").textContent = limit;
 }
 
