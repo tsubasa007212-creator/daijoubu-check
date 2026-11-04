@@ -220,7 +220,7 @@ h1 { font-size: 20px; letter-spacing: .04em; line-height: 1.3; }
 .verified svg { width: 16px; height: 16px; }
 #lang { order: 2; }
 @media (max-width: 480px) { .verified { flex-basis: 100%; order: 3; margin-top: 2px; } }
-@media (max-width: 480px) { .ledger { top: 108px; max-height: calc(100vh - 108px - var(--dock)); } }
+/* 1列の幅では右の欄を高さで切らない（ページと欄の中の二重の送りにしない）。 */
 
 /* 縦の余白を 16/24/32 の律動に */
 main { padding: 24px 16px calc(var(--dock) + 32px); }

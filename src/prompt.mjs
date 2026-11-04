@@ -4,7 +4,7 @@ const ORIGIN = { type: "string", enum: ["checked", "heard", "guess", "unknown"] 
 export const TURN_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["kind", "added", "changed", "links", "citations", "ask", "step", "reply", "no_evidence"],
+  required: ["kind", "added", "changed", "links", "citations", "ask", "step", "reply", "no_evidence", "answer_kind", "choices", "cannot_open", "step_note"],
   properties: {
     kind: { type: "string", enum: ["symptom", "vague", "checkup", "greeting", "other"] },
     added: {
@@ -55,6 +55,13 @@ export const TURN_SCHEMA = {
     },
     reply: { type: "string" },
     no_evidence: { type: "boolean" },
+    answer_kind: { type: "string", enum: ["yes_no", "choice", "free"] },
+    choices: { type: "array", items: { type: "string" } },
+    cannot_open: { type: "boolean" },
+    step_note: {
+      type: "object", additionalProperties: false, required: ["how", "needs", "cannot_tell"],
+      properties: { how: { type: "string" }, needs: { type: "string" }, cannot_tell: { type: "string" } },
+    },
   },
 };
 
@@ -93,9 +100,18 @@ link は「今この記録と比べている」という意味で、部品が同
 ## 言語
 reply、added の text、gloss は、入力の language で書く（"en" なら、相談者が日本語で書いていても英語。"ja" なら日本語）。英語では "you should"、"take it to"、"it is fine/safe"、"please replace/repair" を使わず、"It is best to ..."、"A mechanic can check ..." のように言う。カードは日本語のまま読み、内容を足さずに訳す。
 language が "ja" なら gloss は空にする。他の言語なら gloss に、引いた場面の言葉の訳を入れる。
+language が "ja" 以外で step を入れた時は、step_note にその確認の how・needs・cannot_tell を、内容を足さずに language の言語へ訳して入れる。"ja" の時と step がない時は、3つとも空文字にする。
 
 ## 点検の結果
-「点検の結果：エンジンはすぐかかる？ ○／ブレーキを握ると、いつも通り止まれる？ × 」の形は、相談者が自分で見た結果。○は added に入れず、△と×を checked に、？を unknown に入れる。×を先に扱い、点検の流れへつなぐ。「大丈夫です」とは言わない。
+「点検の結果：エンジンはすぐかかる？ ○／ブレーキを握ると、いつも通り止まれる？ × 」の形は、相談者が自分で見た結果。○・△・×は checked に、？は unknown に、何を見てどうだったかが分かる文で入れる（例：「ブレーキを握ると、いつも通り止まれた（点検で○）」）。×を先に扱い、点検の流れへつなぐ。「大丈夫です」とは言わない。全部○の時は kind を checkup にする。
+あとで相談者が点検の結果と違うことを言ったら（「実際はブレーキが効きにくい」など）、新しい発言を足さず、その点検の発言を changed で直す。
+
+## 作業できる範囲
+相談者が「部品を外せない」「工具がない」「触れない」のように、自分では部品を外す作業や工具を使う作業ができないと言ったら、cannot_open を true にする。届いた cannot_open が true なら、相談者が「外せる」と言い直すまで true のまま返す。それ以外は false。台帳には入れない。
+cannot_open が true の相談者には、カバーや部品を外す確認、工具を使う確認を頼まない。外さずに見られる確認が流れに残っていれば、そちらを先に聞く。次の確認が外す確認しかない時は、step にその確認を入れたうえで、reply では作業を頼まず「この先は部品を外す確認になります。ここまでを『お店に見せる1枚』にまとめられます」のように伝える。
+
+## 答え方
+answer_kind は reply の最後の質問の答え方。「はい」「いいえ」で答えられる問いは yes_no。「急に？少しずつ？」のように選ぶ問いは choice にして、choices に選択肢を2〜4個、language の言語で短く入れる。数・場所・様子を言葉で答える問い（「走行距離はどのくらい？」など）は free。質問がない時は free。yes_no と free の時、choices は空にする。
 
 ## 返答
 - reply は短い文で、3文まで。専門用語を使わず、整備を知らない人に話す。

@@ -30,14 +30,14 @@ function logQuestion(message) {
 }
 
 // 検査に落ちたら理由を添えて1回だけやり直し、それでも駄目なら止める。止めても相談者の発言は台帳に残す。
-async function answer(state, message, lang, previousReply) {
+async function answer(state, message, lang, previousReply, cannotOpen = false) {
   const stop = (next) => ({ state: next, turn: { reply: STOP_REPLY[lang] ?? STOP_REPLY.ja, citations: [], ask: null, no_evidence: true } });
   let hint = null;
   let kept = state;
   let stepOnly = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      const { turn } = await readTurn(client, { cards, flows, state, message, previousReply, hint, lang });
+      const { turn } = await readTurn(client, { cards, flows, state, message, previousReply, hint, lang, cannotOpen });
       const next = trimState(applyTurn(state, turn));
       const fixed = fixedTurn(turn, lang, FIXED_REPLY);
       if (fixed) return { state: trimState(applyTurn(state, { ...turn, links: [] })), turn: fixed };
@@ -72,10 +72,10 @@ function readRequest(body) {
     return null;
   }
   if (!parsed || typeof parsed !== "object") return null;
-  const { message, state, signature, lang, previousReply } = parsed;
+  const { message, state, signature, lang, previousReply, cannotOpen } = parsed;
   if (typeof message !== "string" || !message.trim() || message.length > MAX_MESSAGE) return null;
   if (state && (!isValidState(state) || !isSealed(state, signature))) return null;
-  return { message: message.trim(), state: state ?? newState(), lang, previousReply: String(previousReply ?? "").slice(0, 800) };
+  return { message: message.trim(), state: state ?? newState(), lang, previousReply: String(previousReply ?? "").slice(0, 800), cannotOpen: cannotOpen === true };
 }
 
 function send(res, status, body, type = "application/json; charset=utf-8") {
@@ -103,7 +103,7 @@ function handleTurn(req, res) {
       const request = readRequest(Buffer.concat(chunks).toString("utf8"));
       if (!request) return send(res, 400, JSON.stringify({ error: "bad request" }));
       if (!allowed(visitorOf(req))) return send(res, 429, JSON.stringify({ error: "limit" }));
-      const result = await answer(request.state, request.message, request.lang, request.previousReply);
+      const result = await answer(request.state, request.message, request.lang, request.previousReply, request.cannotOpen);
       if (result.turn.no_evidence) logQuestion(request.message);
       send(res, 200, JSON.stringify({
         state: result.state,

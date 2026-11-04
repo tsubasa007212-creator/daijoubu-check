@@ -7,7 +7,7 @@ export function createClient() {
   return new Anthropic({ maxRetries: 1, timeout: 60000 });
 }
 
-export async function readTurn(client, { cards, flows = [], state, message, previousReply = "", hint = null, lang = "ja" }) {
+export async function readTurn(client, { cards, flows = [], state, message, previousReply = "", hint = null, lang = "ja", cannotOpen = false }) {
   const response = await client.beta.messages.create({
     model: MODEL,
     max_tokens: MAX_TOKENS,
@@ -18,7 +18,7 @@ export async function readTurn(client, { cards, flows = [], state, message, prev
       { type: "text", text: SYSTEM },
       { type: "text", text: `## 記録カード\n${JSON.stringify(cards)}\n\n## 点検の流れ\n${JSON.stringify(flows)}`, cache_control: { type: "ephemeral" } },
     ],
-    messages: [{ role: "user", content: JSON.stringify({ ledger: state, previous_reply: previousReply, fix_this: hint, language: lang, message }) }],
+    messages: [{ role: "user", content: JSON.stringify({ ledger: state, previous_reply: previousReply, fix_this: hint, language: lang, cannot_open: cannotOpen, message }) }],
   });
   if (response.stop_reason !== "end_turn") throw new Error(`stopped: ${response.stop_reason}`);
   const text = response.content.find((block) => block.type === "text");
