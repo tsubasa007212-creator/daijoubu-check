@@ -298,7 +298,8 @@ function renderNext() {
   const note = lang === "ja" ? null : session.stepNote?.lang === lang && session.stepNote.how ? session.stepNote : null;
   $("next").hidden = !step;
   // 相談者がもう答えた段は「次に確かめること」ではなく、答えてもらった確認として出す（根拠と場面は残す）。
-  const hold = Boolean(step) && (session.stepHold || session.cantCheck);
+  // 保留はその返答の段にだけかける。「自分では確認できない」の印（cantCheck）は1枚への出口にだけ使い、別の確認まで止めない。
+  const hold = Boolean(step) && Boolean(session.stepHold);
   $("next-title").textContent = hold ? t.stepHoldTitle : session.stepDone ? t.stepDoneTitle : t.nextTitle;
   $("next-lang").hidden = lang === "ja" || Boolean(note);
   $("next-lang").textContent = t.jaOnly ?? "";
@@ -324,7 +325,7 @@ function renderNext() {
   $("next-view").replaceChildren(el("span", "label", `${t.viewLabel}${lang === "ja" ? "：" : ": "}`), ...linked(view ?? ""));
   $("next-source").textContent = step.source === "owner" ? t.sourceOwner : t.sourceVideo;
   // 動画に残っている確認は、その場面を開けるようにする（記録カードにない動画もあるため）。
-  $("next-scene").replaceChildren(...(step.video_id
+  $("next-scene").replaceChildren(...(step.video_id && !hold
     ? [sceneButton(step.video_id, step.t, lang === "ja" ? step.line : t.stepVideo, lang === "ja" ? t.stepVideo : "")]
     : []));
   const needs = note ? note.needs : step.needs;
@@ -995,7 +996,11 @@ async function loadData() {
   }
   $("retry").disabled = false;
   loaded = true;
-  if (!loadFailed && [t.loading, t.loadFailed].includes($("announce").textContent)) $("announce").textContent = "";
+  if (!loadFailed) {
+    // 読み込み由来の通知だけ消す（マイクの案内など、別の通知は残す）。
+    if ([t.loading, t.loadFailed].includes($("announce").textContent)) $("announce").textContent = "";
+    if ([t.loading, t.loadFailed].includes($("mic-status").textContent)) micStatus("");
+  }
   cards = data.cards ?? [];
   flows = data.flows ?? [];
   $("draft").hidden = !data.draft;
