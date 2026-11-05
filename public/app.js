@@ -297,6 +297,8 @@ function renderNext() {
   const step = stepOf(session.step);
   const note = lang === "ja" ? null : session.stepNote?.lang === lang && session.stepNote.how ? session.stepNote : null;
   $("next").hidden = !step;
+  // 相談者がもう答えた段は「次に確かめること」ではなく、答えてもらった確認として出す（根拠と場面は残す）。
+  $("next-title").textContent = session.stepDone ? t.stepDoneTitle : t.nextTitle;
   $("next-lang").hidden = lang === "ja" || Boolean(note);
   $("next-lang").textContent = t.jaOnly ?? "";
   // 工具や分解が要る段、または自分では確かめられないと分かった後は、店に見せる1枚への出口を出す。
@@ -709,6 +711,7 @@ async function send(message, { fromCheck = false, allGood = false } = {}) {
     session.comparisons = data.comparisons;
     // 英語などでは、次に確かめることの訳を、その言語の印と一緒に持つ。
     session.stepNote = turn.step_note?.how ? { ...turn.step_note, lang: askedLang } : null;
+    session.stepDone = Boolean(turn.step_done) && !plainGood;
     // 「部品を外せない」は、相談者が言い直すまで持ち越す（返答に無い時は前の値を保つ）。
     if (typeof turn.cannot_open === "boolean") session.cannotOpen = turn.cannot_open;
     // 読み取った発言は、その相談のすぐ下に札で並べる。言い直しで移った札は、移る前の分け方も見せる。
@@ -969,7 +972,10 @@ narrow.addEventListener("change", placeNext);
 new ResizeObserver(() => document.documentElement.style.setProperty("--dock", `${$("form").offsetHeight}px`)).observe($("form"));
 renderAll();
 async function loadData() {
+  // 取り直している間は、送るボタン・話題の札・点検の送信のどれからも送れないようにする（ready() が false になる）。
+  loaded = false;
   loadFailed = false;
+  renderAll();
   $("load-failed").hidden = true;
   $("retry").disabled = true;
   let data = { cards: [], flows: [], draft: false };

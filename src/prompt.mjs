@@ -4,7 +4,7 @@ const ORIGIN = { type: "string", enum: ["checked", "heard", "guess", "unknown"] 
 export const TURN_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["kind", "added", "changed", "links", "citations", "ask", "step", "reply", "no_evidence", "answer_kind", "choices", "cannot_open", "step_note"],
+  required: ["kind", "added", "changed", "links", "citations", "ask", "step", "reply", "no_evidence", "answer_kind", "choices", "cannot_open", "step_note", "step_done"],
   properties: {
     kind: { type: "string", enum: ["symptom", "vague", "checkup", "greeting", "other"] },
     added: {
@@ -58,6 +58,7 @@ export const TURN_SCHEMA = {
     answer_kind: { type: "string", enum: ["yes_no", "choice", "free"] },
     choices: { type: "array", items: { type: "string" } },
     cannot_open: { type: "boolean" },
+    step_done: { type: "boolean" },
     step_note: {
       type: "object", additionalProperties: false, required: ["how", "needs", "cannot_tell", "view"],
       properties: { how: { type: "string" }, needs: { type: "string" }, cannot_tell: { type: "string" }, view: { type: "string" } },
@@ -90,6 +91,7 @@ link は「今この記録と比べている」という意味で、部品が同
 点検の流れがある症状なら、step に次に確かめる確認を1つ入れる。ledger や相談文にもう答えがある確認は飛ばし、相談者の言葉に一番近い確認から始める（「バッテリーが上がった」ならセルの確認から）。流れの symptom にない言葉を、似た別の言葉と同じとみなさない（振動とぐらつきは別）。流れの ask をそのまま使わず、相談者の言葉に合わせて reply で聞く。
 流れの内容を使って答えた時は、最後の確認でも必ず step にその確認を入れる。
 相談者が今の message や ledger で答えた段は、もう step に入れない。答えに従って、その段の if_yes か if_no の先の段へ進む（「冷却水は入っている」と言われたら、冷却水が入っているかを見る段には戻らない）。段の how が「言われたかを思い出す」でも、相談者が自分で見た・触った内容は答えとして扱う。
+step に入れた段に相談者がもう答えていて、その先の段がない（if_yes/if_no が stop）時は、step_done を true にする。reply ではその確認をもう頼まず、答えを受けた見立てと、1枚にまとめられることを言う。それ以外は false。
 reply と step を食い違わせない。reply で「工具なしの確認に絞る」などの制約を言った時は、その制約に合う段だけ step に入れる。
 新しく走って確かめることは頼まない。走って分かる確認は、これまで乗った時の様子を思い出してもらう形で聞く。
 ブレーキを握った時の音は、ブレーキの相談として no_ride の流れで扱う。止まったままアクセルを開ける確認は出さない。
