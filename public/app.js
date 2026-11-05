@@ -398,12 +398,28 @@ function chip(text, onClick) {
   return button;
 }
 
+// 最初の画面に、答えのもとになった動画の場面を3つ出す（文で分からなくても、見れば分かる人のため）。数は記録から数える。
+const LEAD_CARDS = ["33h-belt", "jpn-shred", "xmb-adjust"];
+function renderLeadScenes(fresh) {
+  const box = $("lead-scenes");
+  const picked = LEAD_CARDS.map((id) => cards.find((c) => c.id === id && c.video_id && c.scenes?.length)).filter(Boolean);
+  box.hidden = !fresh || picked.length === 0;
+  if (box.hidden) return;
+  $("lead-scenes-title").textContent = t.leadScenes;
+  $("lead-scenes-list").replaceChildren(...picked.map((card) => sceneButton(card.video_id, card.scenes[0].t, lang === "ja" ? card.scenes[0].line : recordName(card), lang === "ja" ? recordName(card) : "")));
+  const withVideo = cards.filter((c) => c.video_id);
+  const steps = flows.flatMap((f) => f.steps).filter((st) => st.video_id);
+  const videos = new Set([...withVideo, ...steps].map((x) => x.video_id)).size;
+  $("lead-scenes-count").textContent = t.leadScenesCount.replace("{cards}", withVideo.length).replace("{steps}", steps.length).replace("{videos}", videos);
+}
+
 // 最初は話題と例を出す。止まった時は、今答えられる相談を出して行き止まりにしない。
 // 答えの多くは車種で変わるので、最初に種類を選んでもらう。分からないも選べる。
 function renderBike() {
   const fresh = session.log.length === 0;
   // 説明は最初の画面にだけ出す。
   $("lead-block").hidden = !fresh;
+  renderLeadScenes(fresh);
   $("bike").hidden = !fresh || session.bike !== undefined;
   $("bike-list").replaceChildren(...t.bikes.map((text, index) => {
     const button = chip(text, () => {
