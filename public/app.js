@@ -957,7 +957,8 @@ $("exit-make").addEventListener("click", () => {
   $("sheet-view").scrollIntoView({ block: "start", behavior: calm ? "auto" : "smooth" });
 });
 
-$("retry").addEventListener("click", () => location.reload());
+// 「もう一度」は記録だけを取り直す。ページを読み込み直すと、入力中の相談文が消えるため。
+$("retry").addEventListener("click", () => loadData());
 
 // 記録の読み込みを待つ前に、車種の選択と入力欄を使えるようにしておく（待ちの間は「読み込んでいます」を出す）。
 // 取れなかった時は、もう一度読み込む出口を出す。
@@ -967,20 +968,27 @@ narrow.addEventListener("change", placeNext);
 // 下の固定欄の実高（マイクの案内が出ると伸びる）に、本文の下の余白を合わせる。
 new ResizeObserver(() => document.documentElement.style.setProperty("--dock", `${$("form").offsetHeight}px`)).observe($("form"));
 renderAll();
-let data = { cards: [], flows: [], draft: false };
-try {
-  // 最初の起動は50秒ほどかかることがあるので、待つのは70秒まで。
-  const response = await fetch("/api/cards", { signal: AbortSignal.timeout(70000) });
-  if (!response.ok) throw new Error("failed");
-  data = await response.json();
-} catch {
-  loadFailed = true;
-  $("load-failed").hidden = false;
+async function loadData() {
+  loadFailed = false;
+  $("load-failed").hidden = true;
+  $("retry").disabled = true;
+  let data = { cards: [], flows: [], draft: false };
+  try {
+    // 最初の起動は50秒ほどかかることがあるので、待つのは70秒まで。
+    const response = await fetch("/api/cards", { signal: AbortSignal.timeout(70000) });
+    if (!response.ok) throw new Error("failed");
+    data = await response.json();
+  } catch {
+    loadFailed = true;
+    $("load-failed").hidden = false;
+  }
+  $("retry").disabled = false;
+  loaded = true;
+  cards = data.cards ?? [];
+  flows = data.flows ?? [];
+  $("draft").hidden = !data.draft;
+  renderAll();
+  // 作ってあった1枚は、読み込み直した時も作り直して見せる。
+  refreshSheet(false);
 }
-loaded = true;
-cards = data.cards ?? [];
-flows = data.flows ?? [];
-$("draft").hidden = !data.draft;
-renderAll();
-// 作ってあった1枚は、読み込み直した時も作り直して見せる。
-refreshSheet(false);
+await loadData();
