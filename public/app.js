@@ -80,7 +80,19 @@ function play(videoId, time) {
   frame.src = `https://www.youtube-nocookie.com/embed/${videoId}?start=${seconds(time)}&autoplay=1`;
   frame.allow = "autoplay; encrypted-media";
   frame.title = t.videoTitle;
-  $("player").replaceChildren(frame);
+  // 場面は入口。全体を見るほうが分かることが多いので、最初から見る道と YouTube で開く道を添える。
+  const note = el("p", "hint", t.playNote);
+  const whole = el("button", "plain", t.playWhole);
+  whole.type = "button";
+  whole.onclick = () => play(videoId, "00:00");
+  const link = document.createElement("a");
+  link.href = `https://www.youtube.com/watch?v=${videoId}`;
+  link.target = "_blank";
+  link.rel = "noopener";
+  link.textContent = t.playYoutube;
+  const row = el("p", "player-row");
+  row.append(whole, " ", link);
+  $("player").replaceChildren(frame, ...(seconds(time) > 0 ? [note] : []), row);
   // 1列の幅では再生欄が会話の下にあるので、見える所まで送る。
   if (matchMedia("(max-width: 800px)").matches) $("player").scrollIntoView({ block: "start", behavior: "smooth" });
 }
@@ -406,7 +418,8 @@ function renderLeadScenes(fresh) {
   box.hidden = !fresh || picked.length === 0;
   if (box.hidden) return;
   $("lead-scenes-title").textContent = t.leadScenes;
-  $("lead-scenes-list").replaceChildren(...picked.map((card) => sceneButton(card.video_id, card.scenes[0].t, lang === "ja" ? card.scenes[0].line : recordName(card), lang === "ja" ? recordName(card) : "")));
+  // 結果（記録の題）を先に、その場面の言葉を小さく。
+  $("lead-scenes-list").replaceChildren(...picked.map((card) => sceneButton(card.video_id, card.scenes[0].t, recordName(card), lang === "ja" ? card.scenes[0].line : "")));
   const withVideo = cards.filter((c) => c.video_id);
   const steps = flows.flatMap((f) => f.steps).filter((st) => st.video_id);
   const videos = new Set([...withVideo, ...steps].map((x) => x.video_id)).size;
