@@ -298,7 +298,8 @@ function renderNext() {
   const note = lang === "ja" ? null : session.stepNote?.lang === lang && session.stepNote.how ? session.stepNote : null;
   $("next").hidden = !step;
   // 相談者がもう答えた段は「次に確かめること」ではなく、答えてもらった確認として出す（根拠と場面は残す）。
-  $("next-title").textContent = session.stepDone ? t.stepDoneTitle : t.nextTitle;
+  const hold = Boolean(step) && (session.stepHold || session.cantCheck);
+  $("next-title").textContent = hold ? t.stepHoldTitle : session.stepDone ? t.stepDoneTitle : t.nextTitle;
   $("next-lang").hidden = lang === "ja" || Boolean(note);
   $("next-lang").textContent = t.jaOnly ?? "";
   // 工具や分解が要る段、または自分では確かめられないと分かった後は、店に見せる1枚への出口を出す。
@@ -315,9 +316,11 @@ function renderNext() {
   $("next-pic").hidden = !pic;
   if (pic) $("next-pic").src = `img/${pic}.webp`;
   const [how, limit, view] = note ? [note.how, note.cannot_tell, note.view] : explain([step.how, step.cannot_tell, step.view ?? ""]);
-  $("next-how").replaceChildren(...linked(how));
+  // 今はしない確認は、やり方も見立ての作業も出さず、分からないことと出所だけ残す。
+  $("next-how").replaceChildren(...linked(hold ? t.stepHold : how));
+  $("next-pic").hidden = !pic || hold;
   // 整備士の見立てやすすめ（交換など）は、相談者が今する確認と分けて出す。必要なものは確認の方にだけかかる。
-  $("next-view").hidden = !view;
+  $("next-view").hidden = !view || hold;
   $("next-view").replaceChildren(el("span", "label", `${t.viewLabel}${lang === "ja" ? "：" : ": "}`), ...linked(view ?? ""));
   $("next-source").textContent = step.source === "owner" ? t.sourceOwner : t.sourceVideo;
   // 動画に残っている確認は、その場面を開けるようにする（記録カードにない動画もあるため）。
@@ -326,7 +329,7 @@ function renderNext() {
     : []));
   const needs = note ? note.needs : step.needs;
   // 訳に必要なものが無い時は、空の行を出さない。
-  $("next-needs").hidden = !needs;
+  $("next-needs").hidden = !needs || hold;
   $("next-needs").textContent = `${t.needs}${lang === "ja" ? "：" : ": "}${needs}`;
   $("next-limit").textContent = limit;
 }
@@ -712,6 +715,8 @@ async function send(message, { fromCheck = false, allGood = false } = {}) {
     // 英語などでは、次に確かめることの訳を、その言語の印と一緒に持つ。
     session.stepNote = turn.step_note?.how ? { ...turn.step_note, lang: askedLang } : null;
     session.stepDone = Boolean(turn.step_done) && !plainGood;
+    // 今できない・してはいけない確認は、固定欄でも作業を出さない（本文と固定欄で同じ可否を守る）。
+    session.stepHold = (Boolean(turn.step_hold) || session.cannotOpen === true) && !plainGood;
     // 「部品を外せない」は、相談者が言い直すまで持ち越す（返答に無い時は前の値を保つ）。
     if (typeof turn.cannot_open === "boolean") session.cannotOpen = turn.cannot_open;
     // 読み取った発言は、その相談のすぐ下に札で並べる。言い直しで移った札は、移る前の分け方も見せる。
@@ -990,6 +995,7 @@ async function loadData() {
   }
   $("retry").disabled = false;
   loaded = true;
+  if (!loadFailed && [t.loading, t.loadFailed].includes($("announce").textContent)) $("announce").textContent = "";
   cards = data.cards ?? [];
   flows = data.flows ?? [];
   $("draft").hidden = !data.draft;
