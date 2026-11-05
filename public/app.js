@@ -416,6 +416,9 @@ function renderLeadScenes(fresh) {
   const box = $("lead-scenes");
   const picked = LEAD_CARDS.map((id) => cards.find((c) => c.id === id && c.video_id && c.scenes?.length)).filter(Boolean);
   box.hidden = !fresh || picked.length === 0;
+  // 相談の前は右の欄が出ていないので、再生欄をこの欄の中へ置く。相談が始まったら元の場所（記録の下）へ戻す。
+  if (box.hidden) $("ledger").after($("player"));
+  else $("lead-scenes-count").before($("player"));
   if (box.hidden) return;
   $("lead-scenes-title").textContent = t.leadScenes;
   // 結果（記録の題）を先に、その場面の言葉を小さく。
