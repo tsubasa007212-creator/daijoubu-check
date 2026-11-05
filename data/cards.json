@@ -229,7 +229,7 @@
     "scenes": [
       {
         "id": "quiet",
-        "t": "08:25",
+        "t": "08:39",
         "line": "無音になりましたね。"
       },
       {
@@ -271,8 +271,8 @@
       "t": "00:39",
       "line": "ベアリングを抜きます。"
     },
-    "owner_note": "大谷本人の確認（2026-11-03）：08:25の無音は、クラッチASSYをシャフトに入れて回転させて確認した。",
-    "owner_note_en": "The silence at 08:25 was checked by putting the clutch assembly on the shaft and turning it."
+    "owner_note": "大谷本人の確認（2026-11-03）：この無音は、クラッチASSYをシャフトに入れて回転させて確認した。（場面の時刻は字幕では08:25だったが、音声では08:39。2026-11-05に08:39へ直した）",
+    "owner_note_en": "The silence at 08:39 was checked by putting the clutch assembly on the shaft and turning it."
   },
   {
     "id": "1nu-mileage",
