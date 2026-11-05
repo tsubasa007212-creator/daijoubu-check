@@ -598,10 +598,10 @@ function fitInput() {
   input.style.overflowY = input.scrollHeight > max ? "auto" : "hidden";
 }
 
-// 1列の幅では最新の答えの直後（答えるボタンの上）へ、広い幅では右の欄の先頭へ戻す。
-// 読む順は、答え→確かめ方→答えるボタン。
+// 1列の幅では答えるボタンの直後へ、広い幅では右の欄の先頭へ戻す。
+// 読む順は、答え（最後が質問）→答えるボタン→確かめ方と根拠。根拠は強みなので消さず、ボタンの下に残す。
 function placeNext() {
-  if (narrow.matches) $("quick").before($("next"), $("exit"));
+  if (narrow.matches) $("quick").after($("next"), $("exit"));
   else document.querySelector(".ledger").prepend($("next"), $("exit"));
 }
 
