@@ -83,6 +83,21 @@ test("届け先の判定：Discord の webhook はトークン無しで届く。
   assert.equal(questionDelivery("https://discord.com/api/webhooks/not-a-webhook", ""), null);
 });
 
+const issues = "https://api.github.com/repos/example-owner/daijoubu-inbox/issues";
+
+test("GitHub の issues の URL なら、トークンを付けて題と本文の形で送る。トークン無しでは送らない", async () => {
+  assert.equal(questionDelivery(issues, ""), null);
+  assert.equal(questionDelivery(issues, "ghp_x"), "github");
+  let sent;
+  const post = async (url, options) => { sent = { url, ...options }; return { ok: true, status: 201 }; };
+  assert.equal(await sendQuestion({ at: "2026-11-06T03:04:05.000Z", message: "ベルトって何キロで替えるの" }, { url: issues, token: "ghp_x", post }), true);
+  assert.equal(sent.headers.authorization, "Bearer ghp_x");
+  assert.equal(sent.headers.accept, "application/vnd.github+json");
+  const body = JSON.parse(sent.body);
+  assert.equal(body.title, "止まった相談（2026/11/6 12:04:05）");
+  assert.equal(body.body, "> ベルトって何キロで替えるの");
+});
+
 test("Discord の webhook には、相談の文と日本時間を本文にして、トークン無しで送る", async () => {
   let sent;
   const post = async (url, options) => { sent = { url, ...options }; return { ok: true }; };

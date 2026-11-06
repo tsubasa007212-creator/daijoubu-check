@@ -36,9 +36,12 @@ export const STOP_REPLY = {
 
 // 止まった相談が整備士に届く設定になっているか。Discord の webhook は URL 自体が鍵なのでトークンは要らない。
 const DISCORD_WEBHOOK = /^https:\/\/(discord|discordapp)\.com\/api\/webhooks\/[0-9]+\/[A-Za-z0-9_-]+$/;
+// GitHub の Issue として届ける時は、非公開リポジトリの issues の URL とトークン（その1つのリポジトリの Issues 書き込みだけ）を設定する。
+const GITHUB_ISSUES = /^https:\/\/api\.github\.com\/repos\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/issues$/;
 export function questionDelivery(url = QUESTION_URL, token = QUESTION_TOKEN) {
   if (!url || !/^(https:|http:\/\/(localhost|127\.0\.0\.1)[:/])/.test(url)) return null;
   if (DISCORD_WEBHOOK.test(url)) return "discord";
+  if (GITHUB_ISSUES.test(url)) return token ? "github" : null;
   return token ? "bearer" : null;
 }
 
@@ -55,13 +58,23 @@ function discordBody(entry) {
   return { username: "二輪問診", content: `止まった相談（${at}）\n${quoted}` };
 }
 
+// GitHub の Issue に出す形。題は時刻だけ、本文に相談の文。
+function githubBody(entry) {
+  const at = entry.at ? new Date(entry.at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", hour12: false }) : "";
+  const quoted = String(entry.message ?? "").split("\n").map((line) => `> ${line}`).join("\n");
+  return { title: `止まった相談（${at}）`, body: quoted, labels: ["止まった相談"] };
+}
+
+const BODY_OF = { discord: discordBody, github: githubBody, bearer: (entry) => entry };
+
 // 止まった質問を外の保存先へ送る。失敗しても例外を出さず、結果だけ返す。相談文はログに出さない。
 export async function sendQuestion(entry, { url = QUESTION_URL, token = QUESTION_TOKEN, timeoutMs = QUESTION_TIMEOUT_MS, post = fetch, retries = QUESTION_RETRIES, retryMaxMs = QUESTION_RETRY_MAX_MS } = {}) {
   const delivery = questionDelivery(url, token);
   if (!delivery) return false;
   const headers = { "content-type": "application/json; charset=utf-8", "user-agent": "daijoubu-check (https://github.com/tsubasa007212-creator/daijoubu-check, 1.0)" };
-  if (delivery === "bearer") headers.authorization = `Bearer ${token}`;
-  const body = JSON.stringify(delivery === "discord" ? discordBody(entry) : entry);
+  if (delivery !== "discord") headers.authorization = `Bearer ${token}`;
+  if (delivery === "github") Object.assign(headers, { accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28" });
+  const body = JSON.stringify(BODY_OF[delivery](entry));
   // 429（送りすぎ）の時だけ、相手が言う待ち時間（上限 retryMaxMs）だけ待って、retries 回まで送り直す。
   for (let attempt = 0; ; attempt += 1) {
     try {
