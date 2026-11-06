@@ -11,6 +11,8 @@ export const MAX_MESSAGE = 1000;
 export const QUESTION_URL = process.env.QUESTION_URL ?? "";
 export const QUESTION_TOKEN = process.env.QUESTION_TOKEN ?? "";
 export const QUESTION_TIMEOUT_MS = 3000;
+export const QUESTION_RETRIES = 3;
+export const QUESTION_RETRY_MAX_MS = 30000;
 
 export const FIXED_REPLY = {
   vague: {
@@ -54,23 +56,37 @@ function discordBody(entry) {
 }
 
 // 止まった質問を外の保存先へ送る。失敗しても例外を出さず、結果だけ返す。相談文はログに出さない。
-export async function sendQuestion(entry, { url = QUESTION_URL, token = QUESTION_TOKEN, timeoutMs = QUESTION_TIMEOUT_MS, post = fetch } = {}) {
+export async function sendQuestion(entry, { url = QUESTION_URL, token = QUESTION_TOKEN, timeoutMs = QUESTION_TIMEOUT_MS, post = fetch, retries = QUESTION_RETRIES, retryMaxMs = QUESTION_RETRY_MAX_MS } = {}) {
   const delivery = questionDelivery(url, token);
   if (!delivery) return false;
-  const headers = { "content-type": "application/json; charset=utf-8" };
+  const headers = { "content-type": "application/json; charset=utf-8", "user-agent": "daijoubu-check (https://github.com/tsubasa007212-creator/daijoubu-check, 1.0)" };
   if (delivery === "bearer") headers.authorization = `Bearer ${token}`;
-  try {
-    const response = await post(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(delivery === "discord" ? discordBody(entry) : entry),
-      redirect: "error",
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-    if (!response.ok) console.warn("question send", response.status);
-    return response.ok;
-  } catch (error) {
-    console.warn("question send", error.name);
-    return false;
+  const body = JSON.stringify(delivery === "discord" ? discordBody(entry) : entry);
+  // 429（送りすぎ）の時だけ、相手が言う待ち時間（上限 retryMaxMs）だけ待って、retries 回まで送り直す。
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const response = await post(url, { method: "POST", headers, body, redirect: "error", signal: AbortSignal.timeout(timeoutMs) });
+      if (response.ok) return true;
+      const wait = response.status === 429 ? await retryAfterMs(response) : null;
+      console.warn("question send", response.status, wait === null ? "" : `retry_after=${wait}ms`);
+      if (wait === null || wait > retryMaxMs || attempt >= retries) return false;
+      await sleep(wait);
+    } catch (error) {
+      console.warn("question send", error.name);
+      return false;
+    }
   }
+}
+
+const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+
+// 429 の返事から待ち時間（ミリ秒）を読む。本文の retry_after（秒）、無ければヘッダーの Retry-After（秒）。どちらも無ければ 1 秒。
+async function retryAfterMs(response) {
+  try {
+    const text = typeof response.text === "function" ? await response.text() : "";
+    const json = text ? JSON.parse(text) : {};
+    if (typeof json.retry_after === "number") return Math.ceil(json.retry_after * 1000);
+  } catch {}
+  const header = Number(response.headers?.get?.("retry-after"));
+  return Number.isFinite(header) && header > 0 ? header * 1000 : 1000;
 }

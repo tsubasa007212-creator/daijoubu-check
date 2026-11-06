@@ -36,6 +36,31 @@ test("送れなくても例外を出さず、相談文をログに出さない",
   assert.ok(!JSON.stringify(warn.mock.calls.map((c) => c.arguments)).includes(entry.message));
 });
 
+test("429 なら相手の言う待ち時間だけ待って送り直し、2回目で届けば true", async (t) => {
+  const warn = t.mock.method(console, "warn", () => {});
+  let calls = 0;
+  const post = async () => {
+    calls += 1;
+    if (calls === 1) return { ok: false, status: 429, text: async () => JSON.stringify({ message: "You are being rate limited.", retry_after: 0.05, global: false }), headers: { get: () => null } };
+    return { ok: true, status: 200 };
+  };
+  assert.equal(await sendQuestion(entry, { url: "https://example.test/q", token: "abc", post }), true);
+  assert.equal(calls, 2);
+  assert.ok(JSON.stringify(warn.mock.calls.map((c) => c.arguments)).includes("retry_after=50ms"));
+});
+
+test("429 の待ち時間が長すぎる時と、回数を超えた時は諦める", async (t) => {
+  t.mock.method(console, "warn", () => {});
+  let calls = 0;
+  const limited = async () => { calls += 1; return { ok: false, status: 429, text: async () => "", headers: { get: (k) => (k === "retry-after" ? "1" : null) } }; };
+  assert.equal(await sendQuestion(entry, { url: "https://example.test/q", token: "abc", post: limited, retryMaxMs: 500 }), false);
+  assert.equal(calls, 1);
+  calls = 0;
+  const short = async () => { calls += 1; return { ok: false, status: 429, text: async () => JSON.stringify({ retry_after: 0.01 }), headers: { get: () => null } }; };
+  assert.equal(await sendQuestion(entry, { url: "https://example.test/q", token: "abc", post: short, retries: 2 }), false);
+  assert.equal(calls, 3);
+});
+
 test("相手が返事をしなければ、短い時間で切る", async (t) => {
   t.mock.method(console, "warn", () => {});
   const hang = (url, { signal }) => new Promise((_, reject) => {
