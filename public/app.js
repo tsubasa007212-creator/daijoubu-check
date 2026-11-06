@@ -270,6 +270,22 @@ function renderEntry(entry, index, view) {
     addToPaper(view.paper, button);
     return;
   }
+  if (entry.kind === "price") {
+    const paper = el("div", "me price");
+    if (view.fresh && index > view.lastYou) paper.classList.add("fresh");
+    paper.append(el("p", "ev", t.priceTitle));
+    const list = el("dl", "price-list");
+    for (const item of entry.items) list.append(el("dt", "", item.label), el("dd", "", item.cost));
+    paper.append(list, el("p", "source", entry.note));
+    const link = el("a", "", entry.source);
+    link.href = entry.source; link.target = "_blank"; link.rel = "noopener";
+    const src = el("p", "source");
+    src.append(t.priceSource, entry.taken, t.priceTaken, " ", link);
+    paper.append(src);
+    $("log").append(paper);
+    view.paper = null;
+    return;
+  }
   $("log").append(el("p", entry.kind, entry.text));
 }
 
@@ -775,6 +791,8 @@ async function send(message, { fromCheck = false, allGood = false } = {}) {
       if (sourceKey && sourceKey !== lastKey) session.log.push({ kind: "source", key: sourceKey, text: sourceKey === "owner" ? t.sourceOwner : t.sourceVideo });
       turn.citations.forEach((cite) => session.log.push({ kind: "cite", ...cite }));
     }
+    // 値段を聞かれた時は、大谷の店の公開料金を決まった形で添える（金額は返事の文には入らない）。
+    if (turn.price && Array.isArray(turn.price.items)) session.log.push({ kind: "price", ...turn.price });
     session.quick = plainGood || turn.no_evidence || turn.topics ? "topics" : turn.ask || turn.step ? "answers" : null;
     session.answerKind = turn.answer_kind ?? "yes_no";
     session.choices = Array.isArray(turn.choices) ? turn.choices.slice(0, 4) : [];

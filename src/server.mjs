@@ -5,6 +5,7 @@ import { extname, join } from "node:path";
 import { applyTurn, comparisons, newState, releasedCards } from "./engine.mjs";
 import { askStepOnly, assertions, checkTurn, fixedTurn } from "./guard.mjs";
 import { createClient, readTurn } from "./claude.mjs";
+import { isPriceQuestion, pickPrices, priceTurn } from "./prices.mjs";
 import { ALLOW_UNCHECKED, FIXED_REPLY, LIMIT_DAY, LIMIT_HOUR, MAX_BODY, MAX_MESSAGE, PORT, questionDelivery, sendQuestion, STOP_NOTICE, STOP_REPLY } from "./config.mjs";
 import { createLimiter, isValidState, trimState } from "./limits.mjs";
 import { isSealed, seal } from "./seal.mjs";
@@ -109,7 +110,13 @@ function handleTurn(req, res) {
       const request = readRequest(Buffer.concat(chunks).toString("utf8"));
       if (!request) return send(res, 400, JSON.stringify({ error: "bad request" }));
       if (!allowed(visitorOf(req))) return send(res, 429, JSON.stringify({ error: "limit" }));
-      const result = await answer(request.state, request.message, request.lang, request.previousReply, request.cannotOpen);
+      let result = await answer(request.state, request.message, request.lang, request.previousReply, request.cannotOpen);
+      // 値段の質問には、大谷の店の公開料金を決まった形で添える。値段だけで止まった時は、止めずに参考価格で返す。
+      if (isPriceQuestion(request.message)) {
+        result = result.turn.no_evidence
+          ? { state: result.state, turn: priceTurn(request.message, result.state, request.lang) }
+          : { state: result.state, turn: { ...result.turn, price: pickPrices(request.message, result.state, request.lang) } };
+      }
       if (result.turn.no_evidence) logQuestion(request.message);
       send(res, 200, JSON.stringify({
         state: result.state,

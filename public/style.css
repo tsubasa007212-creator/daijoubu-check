@@ -82,6 +82,10 @@ main { max-width: 1040px; margin: auto; padding: 16px 16px calc(var(--dock) + 24
 .me .ev::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
 .me .source { margin: 12px 0 0; padding-top: 8px; border-top: 1px dashed var(--rule); font-size: 13px; color: var(--sub); }
 /* 外した知らせ：作業票の先頭。テープ色の1本線と濃い黄の文字 */
+.me.price .price-list { margin: 10px 0 0; }
+.me.price dt { margin-top: 8px; font-weight: 700; }
+.me.price dd { margin: 2px 0 0; }
+.me.price a { color: inherit; word-break: break-all; }
 .me .move { margin: 0 0 12px; padding: 2px 12px; font-size: 13px; line-height: 1.6; color: var(--tape-ink); border-left: 3px solid var(--tape); }
 
 /* 動画の場面：紙の上の根拠。左に再生の印と時刻、縦線で区切って右に言葉と車の記録 */

@@ -11,6 +11,8 @@ const ASSERTIONS = [
 // 新しく走って確かめるよう頼む文。否定の文に混ざっていても止める。
 const RIDE_REQUESTS = [/(走|乗)って.{0,30}(確かめ|試し)て(ください|みて|ほしい|もらえ|。|$)/];
 const MAX_REPLY = 600;
+// 金額は data/prices.json から決まった形で出す。Claudeの文には入れない。
+const MONEY = /[¥￥]\s?\d|\d[\d,]*\s?(円|yen)/i;
 // 「大丈夫です」とは言えません、のような否定は言い切りではない。
 const NEGATED = /とは(言え|言い切れ|限ら|決め)|かどうか|か(は|も)(分かり|言え)|cannot say|can't say|not sure|whether|can(?:no|')t tell|can(?:no|')t confirm|have not confirmed/i;
 
@@ -62,6 +64,7 @@ export function checkTurn(turn, cards, { requireHumanCheck = true, released = []
   if (turn.no_evidence && (turn.citations ?? []).length > 0) errors.push("no_evidence with citations");
   if (assertions(turn.reply ?? "").length > 0) errors.push("assertion in reply");
   if ((turn.reply ?? "").length > MAX_REPLY) errors.push("reply too long");
+  if (MONEY.test(turn.reply ?? "")) errors.push("money in reply");
   if ((turn.citations ?? []).length === 0 && !turn.no_evidence && !turn.ask && !turn.step) errors.push("reply has no evidence");
   return errors;
 }
