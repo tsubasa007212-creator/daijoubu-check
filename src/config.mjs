@@ -32,14 +32,38 @@ export const STOP_REPLY = {
   en: "We have not confirmed this yet, and we do not answer what we have not confirmed. You can pick a topic we can answer below.",
 };
 
+// 止まった相談が整備士に届く設定になっているか。Discord の webhook は URL 自体が鍵なのでトークンは要らない。
+const DISCORD_WEBHOOK = /^https:\/\/(discord|discordapp)\.com\/api\/webhooks\/[0-9]+\/[A-Za-z0-9_-]+$/;
+export function questionDelivery(url = QUESTION_URL, token = QUESTION_TOKEN) {
+  if (!url || !/^(https:|http:\/\/(localhost|127\.0\.0\.1)[:/])/.test(url)) return null;
+  if (DISCORD_WEBHOOK.test(url)) return "discord";
+  return token ? "bearer" : null;
+}
+
+// 止まった時に相談者へ添える一言。届く設定の時だけ出す。
+export const STOP_NOTICE = {
+  ja: "この相談は整備士の大谷に届けます（名前や連絡先は送りません）。確かめて言葉にできたら、次から答えられるようになります。",
+  en: "This question will be passed to Otani, the mechanic (no name or contact details are sent). Once he has checked it and put it into words, the app can answer it next time.",
+};
+
+// Discord へ出す形。相談の文はそのまま、時刻は日本時間で。
+function discordBody(entry) {
+  const at = entry.at ? new Date(entry.at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", hour12: false }) : "";
+  const quoted = String(entry.message ?? "").split("\n").map((line) => `> ${line}`).join("\n");
+  return { username: "二輪問診", content: `止まった相談（${at}）\n${quoted}` };
+}
+
 // 止まった質問を外の保存先へ送る。失敗しても例外を出さず、結果だけ返す。相談文はログに出さない。
 export async function sendQuestion(entry, { url = QUESTION_URL, token = QUESTION_TOKEN, timeoutMs = QUESTION_TIMEOUT_MS, post = fetch } = {}) {
-  if (!url || !token || !/^(https:|http:\/\/(localhost|127\.0\.0\.1)[:/])/.test(url)) return false;
+  const delivery = questionDelivery(url, token);
+  if (!delivery) return false;
+  const headers = { "content-type": "application/json; charset=utf-8" };
+  if (delivery === "bearer") headers.authorization = `Bearer ${token}`;
   try {
     const response = await post(url, {
       method: "POST",
-      headers: { "content-type": "application/json; charset=utf-8", authorization: `Bearer ${token}` },
-      body: JSON.stringify(entry),
+      headers,
+      body: JSON.stringify(delivery === "discord" ? discordBody(entry) : entry),
       redirect: "error",
       signal: AbortSignal.timeout(timeoutMs),
     });

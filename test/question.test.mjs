@@ -5,7 +5,7 @@ import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { sendQuestion } from "../src/config.mjs";
+import { questionDelivery, sendQuestion } from "../src/config.mjs";
 
 const entry = { at: "2026-11-03T00:00:00.000Z", message: "止まった質問" };
 
@@ -44,6 +44,30 @@ test("相手が返事をしなければ、短い時間で切る", async (t) => {
   const started = Date.now();
   assert.equal(await sendQuestion(entry, { url: "https://example.test/q", token: "abc", timeoutMs: 50, post: hang }), false);
   assert.ok(Date.now() - started < 2000);
+});
+
+
+const webhook = "https://discord.com/api/webhooks/123456789012345678/abcDEF_ghi-JKL";
+
+test("届け先の判定：Discord の webhook はトークン無しで届く。それ以外はトークンが要る", () => {
+  assert.equal(questionDelivery("", ""), null);
+  assert.equal(questionDelivery("https://example.test/q", ""), null);
+  assert.equal(questionDelivery("https://example.test/q", "abc"), "bearer");
+  assert.equal(questionDelivery(webhook, ""), "discord");
+  assert.equal(questionDelivery("http://example.com/q", "abc"), null);
+  assert.equal(questionDelivery("https://discord.com/api/webhooks/not-a-webhook", ""), null);
+});
+
+test("Discord の webhook には、相談の文と日本時間を本文にして、トークン無しで送る", async () => {
+  let sent;
+  const post = async (url, options) => { sent = { url, ...options }; return { ok: true }; };
+  assert.equal(await sendQuestion({ at: "2026-11-06T03:04:05.000Z", message: "ベルトって何キロで替えるの\n2行目" }, { url: webhook, token: "", post }), true);
+  assert.equal(sent.url, webhook);
+  assert.equal(sent.headers.authorization, undefined);
+  const body = JSON.parse(sent.body);
+  assert.equal(body.username, "二輪問診");
+  assert.ok(body.content.includes("2026/11/6 12:04:05"));
+  assert.ok(body.content.includes("> ベルトって何キロで替えるの\n> 2行目"));
 });
 
 // 本物のサーバーを動かして確かめる。Claude役も受け側も手元の偽物で、外へは出ない。
@@ -126,7 +150,9 @@ test("止まった質問は受け側に届き、手元の控えにも残る", as
   await withServer(receiver, async ({ port, dir }) => {
     const response = await ask(port);
     assert.equal(response.status, 200);
-    assert.equal((await response.json()).turn.no_evidence, true);
+    const turn = (await response.json()).turn;
+    assert.equal(turn.no_evidence, true);
+    assert.ok(turn.reply.includes("整備士の大谷に届けます"));
     const { auth, body } = await Promise.race([arrived, new Promise((_, fail) => setTimeout(() => fail(new Error("届かない")), 8000).unref())]);
     assert.equal(auth, "Bearer test-token");
     assert.equal(body.message, "カードに無い話");

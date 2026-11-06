@@ -5,7 +5,7 @@ import { extname, join } from "node:path";
 import { applyTurn, comparisons, newState, releasedCards } from "./engine.mjs";
 import { askStepOnly, assertions, checkTurn, fixedTurn } from "./guard.mjs";
 import { createClient, readTurn } from "./claude.mjs";
-import { ALLOW_UNCHECKED, FIXED_REPLY, LIMIT_DAY, LIMIT_HOUR, MAX_BODY, MAX_MESSAGE, PORT, sendQuestion, STOP_REPLY } from "./config.mjs";
+import { ALLOW_UNCHECKED, FIXED_REPLY, LIMIT_DAY, LIMIT_HOUR, MAX_BODY, MAX_MESSAGE, PORT, questionDelivery, sendQuestion, STOP_NOTICE, STOP_REPLY } from "./config.mjs";
 import { createLimiter, isValidState, trimState } from "./limits.mjs";
 import { isSealed, seal } from "./seal.mjs";
 
@@ -29,9 +29,15 @@ function logQuestion(message) {
   sendQuestion(entry);
 }
 
+// 止まった時の返事。整備士に届く設定なら、その一言を添える。
+function stopReply(lang) {
+  const base = STOP_REPLY[lang] ?? STOP_REPLY.ja;
+  return questionDelivery() ? `${base}\n${STOP_NOTICE[lang] ?? STOP_NOTICE.ja}` : base;
+}
+
 // 検査に落ちたら理由を添えて1回だけやり直し、それでも駄目なら止める。止めても相談者の発言は台帳に残す。
 async function answer(state, message, lang, previousReply, cannotOpen = false) {
-  const stop = (next) => ({ state: next, turn: { reply: STOP_REPLY[lang] ?? STOP_REPLY.ja, citations: [], ask: null, no_evidence: true } });
+  const stop = (next) => ({ state: next, turn: { reply: stopReply(lang), citations: [], ask: null, no_evidence: true } });
   let hint = null;
   let kept = state;
   let stepOnly = null;
