@@ -47,8 +47,8 @@ export function questionDelivery(url = QUESTION_URL, token = QUESTION_TOKEN) {
 
 // 止まった時に相談者へ添える一言。届く設定の時だけ出す。
 export const STOP_NOTICE = {
-  ja: "この相談は整備士の大谷に届けます（名前や連絡先は送りません）。確かめて言葉にできたら、次から答えられるようになります。",
-  en: "This question will be passed to Otani, the mechanic (no name or contact details are sent). Once he has checked it and put it into words, the app can answer it next time.",
+  ja: "この相談は、その文と時刻だけを整備士の大谷に届けます（名前や連絡先は書かないでください）。確かめて言葉にできたら、次から答えられるようになります。",
+  en: "This question is passed to Otani, the mechanic, as the text and the time only (please do not write names or contact details). Once he has checked it and put it into words, the app can answer it next time.",
 };
 
 // Discord へ出す形。相談の文はそのまま、時刻は日本時間で。

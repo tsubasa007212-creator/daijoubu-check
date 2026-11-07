@@ -86,6 +86,8 @@ main { max-width: 1040px; margin: auto; padding: 16px 16px calc(var(--dock) + 24
 .me.price dt { margin-top: 8px; font-weight: 700; }
 .me.price dd { margin: 2px 0 0; }
 .me.price a { color: inherit; word-break: break-all; }
+#log .trace { margin: -8px 0 20px; padding: 0 4px; font-size: 11.5px; line-height: 1.7; color: var(--sub); }
+#log .trace b { font-weight: 700; letter-spacing: .06em; margin-right: 4px; }
 .me .move { margin: 0 0 12px; padding: 2px 12px; font-size: 13px; line-height: 1.6; color: var(--tape-ink); border-left: 3px solid var(--tape); }
 
 /* 動画の場面：紙の上の根拠。左に再生の印と時刻、縦線で区切って右に言葉と車の記録 */

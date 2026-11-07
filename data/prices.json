@@ -8,7 +8,7 @@
     { "id": "drive", "keys": ["駆動", "ベルト", "プーリー", "ローラー", "クラッチ", "スピード", "速度", "加速", "最高速", "遅い", "遅く", "進まない", "ガラガラ", "シャリシャリ", "belt", "speed", "slow", "accelerat", "drive"],
       "label": "駆動系の標準的なメンテナンス（Vベルト・ローラー・スライドピース等の消耗部品の交換）", "cost": "¥44,000以下が目安。クラッチのオーバーホールまで含むと¥66,000〜",
       "label_en": "Standard drive-train maintenance (V-belt, rollers, slide pieces)", "cost_en": "Up to about ¥44,000. With a clutch overhaul, from ¥66,000" },
-    { "id": "belt-break", "keys": ["ベルトが切れ", "切れた", "切れて", "破断", "belt broke", "broken belt", "snapped"],
+    { "id": "belt-break", "keys": ["ベルトが切れ", "ベルト切れ", "ベルトの破断", "破断", "belt broke", "broken belt", "belt snapped"],
       "label": "ベルトが切れた時（破片の除去と清掃、傷んだ部品の交換）", "cost": "¥44,000〜。ベルトに加えてプーリー類・クラッチ類も替えた実例では総額約62,000円。2ストは部品が高いので4ストより費用がかかります",
       "label_en": "Broken belt (remove fragments, clean, replace damaged parts)", "cost_en": "From ¥44,000. One real case that also replaced pulleys and clutch parts came to about ¥62,000. 2-stroke parts cost more" },
     { "id": "no-start", "keys": ["かからない", "かかりにくい", "始動", "セル", "no start", "won't start", "doesn't start", "not start"],

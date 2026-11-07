@@ -286,7 +286,33 @@ function renderEntry(entry, index, view) {
     view.paper = null;
     return;
   }
+  if (entry.kind === "trace") {
+    const line = el("p", "trace");
+    line.append(el("b", "", t.traceTitle), traceText(entry));
+    $("log").append(line);
+    view.paper = null;
+    return;
+  }
   $("log").append(el("p", entry.kind, entry.text));
+}
+
+// 「中で起きたこと」の1行。数えた事実だけを、画面の言語で並べる。
+function traceText(entry) {
+  const tr = t.trace;
+  const sec = (entry.ms / 1000).toFixed(1);
+  const parts = [tr.calls(entry.calls, sec)];
+  const read = entry.read ?? { added: 0, changed: 0, origins: {} };
+  if (read.added > 0 || read.changed > 0) parts.push(tr.read(read));
+  else parts.push(tr.readNone);
+  const ev = entry.evidence ?? { citations: 0, flow: null };
+  const evParts = [];
+  if (ev.citations > 0) evParts.push(tr.citations(ev.citations));
+  if (ev.flow) evParts.push(tr.flow(ev.flow));
+  parts.push(evParts.length > 0 ? evParts.join(tr.and) : tr.noEvidence);
+  parts.push(tr.outcome(entry.outcome, entry.retried ?? []));
+  if (entry.price && entry.outcome !== "price") parts.push(tr.priced);
+  if (entry.released > 0) parts.push(tr.released(entry.released));
+  return parts.join(tr.sep);
 }
 
 function renderLog(fresh = false) {
@@ -764,10 +790,13 @@ async function send(message, { fromCheck = false, allGood = false } = {}) {
     // 英語などでは、次に確かめることの訳を、その言語の印と一緒に持つ。
     session.stepNote = turn.step_note?.how ? { ...turn.step_note, lang: askedLang } : null;
     session.stepDone = Boolean(turn.step_done) && !plainGood;
-    // 今できない・してはいけない確認は、固定欄でも作業を出さない（本文と固定欄で同じ可否を守る）。
-    session.stepHold = (Boolean(turn.step_hold) || session.cannotOpen === true) && !plainGood;
-    // 「部品を外せない」は、相談者が言い直すまで持ち越す（返答に無い時は前の値を保つ）。
+    // 「部品を外せない」は、相談者が言い直すまで持ち越す（返答に無い時は前の値を保つ）。言い直しは同じ返事から効く。
     if (typeof turn.cannot_open === "boolean") session.cannotOpen = turn.cannot_open;
+    // 今できない・してはいけない確認は、固定欄でも作業を出さない（本文と固定欄で同じ可否を守る）。
+    // 外せない人でも、工具なしで見る・思い出す確認は止めない。
+    const nextNeeds = stepOf(turn.step)?.needs ?? "";
+    const needsOpening = Boolean(turn.step) && !/工具なし/.test(nextNeeds);
+    session.stepHold = (Boolean(turn.step_hold) || (session.cannotOpen === true && needsOpening)) && !plainGood;
     // 読み取った発言は、その相談のすぐ下に札で並べる。言い直しで移った札は、移る前の分け方も見せる。
     const tags = data.state.statements
       .filter((s) => !before[s.id] || before[s.id] !== s.origin || beforeText[s.id] !== s.text)
@@ -793,6 +822,8 @@ async function send(message, { fromCheck = false, allGood = false } = {}) {
     }
     // 値段を聞かれた時は、大谷の店の公開料金を決まった形で添える（金額は返事の文には入らない）。
     if (turn.price && Array.isArray(turn.price.items)) session.log.push({ kind: "price", ...turn.price });
+    // 中で起きたこと（Claudeを呼んだ回数・分けた発言・使った記録・検査の結果・外した比較）を、返事の下に1行で残す。
+    if (data.trace && typeof data.trace === "object") session.log.push({ kind: "trace", ...data.trace });
     session.quick = plainGood || turn.no_evidence || turn.topics ? "topics" : turn.ask || turn.step ? "answers" : null;
     session.answerKind = turn.answer_kind ?? "yes_no";
     session.choices = Array.isArray(turn.choices) ? turn.choices.slice(0, 4) : [];

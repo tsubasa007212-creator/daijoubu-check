@@ -5,12 +5,9 @@ import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const PRICES = JSON.parse(readFileSync(join(here, "..", "data", "prices.json"), "utf8"));
-const PRICE_ASK = /いくら|幾ら|値段|費用|料金|金額|価格|予算|相場|高い|安い|円|お金|\bcost|\bprice|how much|expensive|cheap|\byen\b|¥/i;
+// 「高い」「安い」だけでは値段の質問にしない（空気圧が高い、など）。
+const PRICE_ASK = /いくら|幾ら|値段|費用|料金|金額|価格|予算|相場|修理代|工賃|円|お金|\bcost|\bprice|how much|expensive|cheap|\byen\b|¥/i;
 const MAX_ITEMS = 3;
-export const PRICE_REPLY = {
-  ja: "修理の値段は、車を見てからの見積もりで決まります。参考として、大谷の店（WINGオオタニ）の公開料金を下に出します。この相談の値段を決めるものではありません。",
-  en: "Repair prices are set by an estimate after the shop sees the bike. For reference, the published prices of Otani's shop (WING Otani) are shown below. They do not decide the price for your bike.",
-};
 
 export function isPriceQuestion(message) {
   return PRICE_ASK.test(String(message ?? ""));
@@ -35,15 +32,3 @@ export function pickPrices(message, state = null, lang = "ja") {
   };
 }
 
-// 値段だけの相談（記録が無く止まる所）は、止めずに参考価格で返す。大谷への「止まった相談」にはしない。
-export function priceTurn(message, state, lang = "ja") {
-  return {
-    reply: PRICE_REPLY[lang] ?? PRICE_REPLY.ja,
-    citations: [],
-    ask: null,
-    step: null,
-    no_evidence: false,
-    topics: true,
-    price: pickPrices(message, state, lang),
-  };
-}

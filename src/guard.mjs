@@ -9,17 +9,17 @@ const ASSERTIONS = [
   /\bthe cause is\b/i, /\b(please )?(replace|repair) (it|the)\b/i, /\byou should\b/i, /\btake it to\b/i,
 ];
 // 新しく走って確かめるよう頼む文。否定の文に混ざっていても止める。
-const RIDE_REQUESTS = [/(走|乗)って.{0,30}(確かめ|試し)て(ください|みて|ほしい|もらえ|。|$)/];
+const RIDE_REQUESTS = [/(走|乗)って.{0,30}(確かめ|試し)て(ください|みて|ほしい|もらえ|。|$)/, /\b(please ride|try riding|ride (it|the bike) (and|to))\b/i];
 const MAX_REPLY = 600;
 // 金額は data/prices.json から決まった形で出す。Claudeの文には入れない。
-const MONEY = /[¥￥]\s?\d|\d[\d,]*\s?(円|yen)/i;
+const MONEY = /[¥￥$＄]\s?[\d０-９]|[\d０-９][\d０-９,，.．]*\s?万?\s?(円|yen|dollars?)|[一二三四五六七八九十百千]+万?円/i;
 // 「大丈夫です」とは言えません、のような否定は言い切りではない。
 const NEGATED = /とは(言え|言い切れ|限ら|決め)|かどうか|か(は|も)(分かり|言え)|cannot say|can't say|not sure|whether|can(?:no|')t tell|can(?:no|')t confirm|have not confirmed/i;
 
-// 「〜とは言えませんが、問題ありません」を否定の文として通さないよう、「が、」「けど、」でも分ける。
+// 「〜とは言えませんが、問題ありません」を否定の文として通さないよう、「が、」「けど、」「、でも」「, but」でも分ける。
 export function assertions(reply) {
   const plain = reply.replace(/[’‘]/g, "'").replace(/「[^」]*」/g, "");
-  const sentences = plain.split(/(?<=[。．.!?！？\n]|が、|けど、)/);
+  const sentences = plain.split(/(?<=[。．.!?！？\n]|が、|けど、|、でも|、ただ|, but )/);
   return [
     ...sentences.filter((s) => !NEGATED.test(s)).flatMap((s) => ASSERTIONS.filter((p) => p.test(s))),
     ...sentences.flatMap((s) => RIDE_REQUESTS.filter((p) => p.test(s))),

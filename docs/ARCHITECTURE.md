@@ -38,7 +38,7 @@ Claude (src/claude.mjs, src/prompt.mjs)  話を分け、記録と結ぶ。次の
 | 点検の流れ | `data/flows.json` | 6本／10本 |
 | 流れの中の確認 | `data/flows.json` | 26個／44個 |
 
-- 数は2026-11-03の実測です。
+- 数は2026-11-03の実測です。今の数は README の「今の中身」を見てください。
 - サーバーは `human_check` が `approved` のものだけをClaudeと画面へ渡します。
 - 検査でも同じことを確かめます。
 - `ALLOW_UNCHECKED=1` の時だけ、確認前のものも出ます。開発専用です。
@@ -77,7 +77,7 @@ Claude (src/claude.mjs, src/prompt.mjs)  話を分け、記録と結ぶ。次の
 4. `node tools/check_cards.mjs` と `node --test` を通す。
 5. 公開の設定で、止まっていた相談を入れ直す。
 
-止まった相談は、サーバーの `private/questions.jsonl` に残ります。公開先によっては再起動で消えます。`QUESTION_URL` と `QUESTION_TOKEN` を設定すると https で外の保存先へも送ります。失敗しても返答は止めず、再送はしません。
+止まった相談は、サーバーの `private/questions.jsonl` に残ります。公開先によっては再起動で消えます。`QUESTION_URL` と `QUESTION_TOKEN` を設定すると https で外の保存先へも送ります。失敗しても返答は止めません。429（送り過ぎ）の時だけ待って3回まで送り直し、それ以外は送り直しません。
 
 ## 直す場所
 

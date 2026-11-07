@@ -17,7 +17,7 @@ export const MESSAGES = {
     tryHint: "試すなら：「ジャイロキャノピー」を選んで「スピードが出ない」を押す。",
     scope: "まず下でバイクの種類を選んで、困っていることをボタンか自分の言葉で。言い直せば、答えも組み直します。ジャイロキャノピー以外は、確かめたことから順に広げています。",
     about: "使い方と注意",
-    notice: "答えの文は、整備士が確かめた記録だけを使ってAIが作っています。答えの文そのものを整備士が1つずつ確かめているわけではありません。確かめていないことには答えません。答えられなかった相談はサーバーに一時的に残りますが、整備士に届く仕組みはまだありません。乗るかどうかは、ご自身の判断です。危ないと感じたら、無理に乗らないでください。修理に出す方法も、自分で直す方法もあります。名前・電話番号・ナンバーは書かないでください。",
+    notice: "答えの文は、整備士が確かめた記録だけを使ってAIが作っています。答えの文そのものを整備士が1つずつ確かめているわけではありません。確かめていないことには答えません。答えられなかった相談は、その文と時刻だけが整備士の大谷に届きます（文はそのまま送るので、名前・電話番号・ナンバーは書かないでください）。乗るかどうかは、ご自身の判断です。危ないと感じたら、無理に乗らないでください。修理に出す方法も、自分で直す方法もあります。",
     draft: "開発中：整備士の確認前の記録も出ています。",
     placeholder: "例：前より遅い気がする。なんか変",
     send: "送る",
@@ -43,6 +43,35 @@ export const MESSAGES = {
     priceTitle: "参考価格（大谷の店 WINGオオタニの公開料金）",
     priceSource: "出所：wing-canopy.com の修理料金のページ（",
     priceTaken: "時点）",
+    traceTitle: "中で起きたこと：",
+    trace: {
+      sep: " ／ ",
+      and: "・",
+      calls: (n, sec) => `Claude ${n}回・${sec}秒`,
+      read: (r) => {
+        const names = { checked: "確かめた", heard: "聞いた話", guess: "推測", unknown: "分からない" };
+        const detail = Object.entries(r.origins).map(([k, v]) => `${names[k] ?? k}${v}`).join("・");
+        const added = r.added > 0 ? `発言を${r.added}つ分けた（${detail}）` : "";
+        const changed = r.changed > 0 ? `${r.changed}つを言い直しで移した` : "";
+        return [added, changed].filter(Boolean).join("・");
+      },
+      readNone: "新しい発言なし",
+      citations: (n) => `記録${n}件`,
+      flow: (f) => `流れ「${f.symptom}」の確認${f.step}/${f.of}`,
+      noEvidence: "記録なし",
+      outcome: (o, retried) => {
+        const names = { assertion: "言い切り", money: "金額", no_evidence: "根拠なし", released: "外した比較の引用", unapproved: "本人確認前の記録", contradiction: "矛盾", long: "長すぎ", unknown_ref: "記録に無い引用", shape: "返答の形" };
+        const why = retried.length > 0 ? `（${[...new Set(retried)].map((c) => names[c] ?? c).join("・")}）` : "";
+        if (o === "answered") return retried.length > 0 ? `検査で${retried.length}回止めてやり直し${why}→通過` : "返す前の検査 通過";
+        if (o === "stopped") return retried.length > 0 ? `検査で止めてやり直し${why}→記録に無いので止めた` : "検査：記録に無いので止めた";
+        if (o === "step_only") return `検査で止め${why}、流れの問いだけ返した`;
+        if (o === "fixed") return "決まった文で返した（Claudeの文は使わない）";
+        if (o === "price") return "金額はClaudeに言わせず、公開料金を添えた";
+        return "";
+      },
+      priced: "参考価格を添えた",
+      released: (n) => `外した比較${n}件`,
+    },
     nextTitle: "次に確かめること",
     stepDoneTitle: "いま答えてもらった確認（1枚に残します）",
     stepHoldTitle: "いまはしない確認",
@@ -157,7 +186,7 @@ export const MESSAGES = {
     tryHint: "To try it: pick \"Gyro Canopy\" and tap \"It won't go fast\".",
     scope: "First pick your type of bike below, then tell us what is wrong with a button or in your own words. Correct yourself and the answer is rebuilt. Bikes other than the Gyro Canopy are added as each fact is confirmed.",
     about: "How to use & notes",
-    notice: "The answers are written by AI using only records the mechanic has checked. The mechanic does not check each answer one by one. We do not answer what has not been confirmed. Questions we cannot answer stay on the server for a while, but there is no way yet for them to reach the mechanic. Whether to ride is your own decision. If it feels unsafe, please don't push it. You can have it repaired, or fix it yourself. Please do not write names, phone numbers, or plate numbers.",
+    notice: "The answers are written by AI using only records the mechanic has checked. The mechanic does not check each answer one by one. We do not answer what has not been confirmed. Questions we cannot answer are passed to Otani, the mechanic, as the text and the time only (the text is sent as written, so please do not write names, phone numbers, or plate numbers). Whether to ride is your own decision. If it feels unsafe, please don't push it. You can have it repaired, or fix it yourself.",
     draft: "In development: includes records the mechanic has not confirmed yet.",
     placeholder: "e.g. It feels slower than before. Something is off",
     send: "Send",
@@ -183,6 +212,35 @@ export const MESSAGES = {
     priceTitle: "Reference prices (published by Otani's shop, WING Otani)",
     priceSource: "Source: repair price page on wing-canopy.com (as of ",
     priceTaken: ")",
+    traceTitle: "What happened inside: ",
+    trace: {
+      sep: " / ",
+      and: ", ",
+      calls: (n, sec) => `Claude ${n} call${n === 1 ? "" : "s"}, ${sec}s`,
+      read: (r) => {
+        const names = { checked: "checked", heard: "heard", guess: "guess", unknown: "unknown" };
+        const detail = Object.entries(r.origins).map(([k, v]) => `${v} ${names[k] ?? k}`).join(", ");
+        const added = r.added > 0 ? `sorted ${r.added} statement${r.added === 1 ? "" : "s"} (${detail})` : "";
+        const changed = r.changed > 0 ? `moved ${r.changed} after a correction` : "";
+        return [added, changed].filter(Boolean).join(", ");
+      },
+      readNone: "no new statements",
+      citations: (n) => `${n} record${n === 1 ? "" : "s"}`,
+      flow: (f) => `flow "${f.symptom}" step ${f.step}/${f.of}`,
+      noEvidence: "no record",
+      outcome: (o, retried) => {
+        const names = { assertion: "assertion", money: "money", no_evidence: "no evidence", released: "released comparison", unapproved: "unapproved record", contradiction: "contradiction", long: "too long", unknown_ref: "unknown reference", shape: "bad shape" };
+        const why = retried.length > 0 ? ` (${[...new Set(retried)].map((c) => names[c] ?? c).join(", ")})` : "";
+        if (o === "answered") return retried.length > 0 ? `guard stopped it ${retried.length}x${why}, retried, passed` : "guard passed";
+        if (o === "stopped") return retried.length > 0 ? `guard stopped it${why}, retried, then stopped: not in the records` : "guard: stopped, not in the records";
+        if (o === "step_only") return `guard stopped it${why}, returned only the flow question`;
+        if (o === "fixed") return "fixed text, not Claude's words";
+        if (o === "price") return "no amount from Claude; published prices attached";
+        return "";
+      },
+      priced: "reference prices attached",
+      released: (n) => `released ${n} comparison${n === 1 ? "" : "s"}`,
+    },
     nextTitle: "What to check next",
     stepDoneTitle: "The check you just answered (kept on the sheet)",
     stepHoldTitle: "A check to leave for now",

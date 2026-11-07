@@ -5,10 +5,11 @@ import { extname, join } from "node:path";
 import { applyTurn, comparisons, newState, releasedCards } from "./engine.mjs";
 import { askStepOnly, assertions, checkTurn, fixedTurn } from "./guard.mjs";
 import { createClient, readTurn } from "./claude.mjs";
-import { isPriceQuestion, pickPrices, priceTurn } from "./prices.mjs";
+import { isPriceQuestion, pickPrices } from "./prices.mjs";
 import { ALLOW_UNCHECKED, FIXED_REPLY, LIMIT_DAY, LIMIT_HOUR, MAX_BODY, MAX_MESSAGE, PORT, questionDelivery, sendQuestion, STOP_NOTICE, STOP_REPLY } from "./config.mjs";
 import { createLimiter, isValidState, trimState } from "./limits.mjs";
 import { isSealed, seal } from "./seal.mjs";
+import { traceCodes, traceOf } from "./trace.mjs";
 
 const allCards = JSON.parse(readFileSync("data/cards.json", "utf8"));
 const cards = ALLOW_UNCHECKED ? allCards : allCards.filter((c) => c.human_check === "approved");
@@ -37,17 +38,21 @@ function stopReply(lang) {
 }
 
 // 検査に落ちたら理由を添えて1回だけやり直し、それでも駄目なら止める。止めても相談者の発言は台帳に残す。
+// 戻り値の meta は「中で起きたこと」（Claudeを呼んだ回数・検査で止めた理由・結果）。画面に1行で出す。
 async function answer(state, message, lang, previousReply, cannotOpen = false) {
+  const meta = { calls: 0, retried: null };
+  const done = (result, outcome) => ({ ...result, meta: { ...meta, outcome } });
   const stop = (next) => ({ state: next, turn: { reply: stopReply(lang), citations: [], ask: null, no_evidence: true } });
   let hint = null;
   let kept = state;
   let stepOnly = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
+      meta.calls += 1;
       const { turn } = await readTurn(client, { cards, flows, state, message, previousReply, hint, lang, cannotOpen });
       const next = trimState(applyTurn(state, turn));
       const fixed = fixedTurn(turn, lang, FIXED_REPLY);
-      if (fixed) return { state: trimState(applyTurn(state, { ...turn, links: [] })), turn: fixed };
+      if (fixed) return done({ state: trimState(applyTurn(state, { ...turn, links: [] })), turn: fixed }, "fixed");
       kept = trimState(applyTurn(state, { ...turn, links: [] }));
       const errors = checkTurn(turn, cards, {
         requireHumanCheck: !ALLOW_UNCHECKED,
@@ -55,19 +60,21 @@ async function answer(state, message, lang, previousReply, cannotOpen = false) {
         statementIds: next.statements.map((s) => s.id),
         flows,
       });
-      if (errors.length === 0) return turn.no_evidence ? stop(next) : { state: next, turn };
+      if (errors.length === 0) return turn.no_evidence ? done(stop(next), "stopped") : done({ state: next, turn }, "answered");
       // どの言い方で止まったかだけを残す。相談の文は残さない。
       console.warn("guard", errors, assertions(turn.reply ?? "").map(String));
       hint = errors.join(", ");
+      meta.retried = [...(meta.retried ?? []), ...traceCodes(errors)];
       // 流れの問いは日本語なので、ほかの言語ではそのまま聞かない。
       const asked = lang === "en" ? null : askStepOnly(turn, flows, errors);
       stepOnly = asked ? { state: next, turn: asked } : null;
     } catch (error) {
       console.warn("turn", error.message);
       hint = "返答の形が正しくありませんでした";
+      meta.retried = [...(meta.retried ?? []), "shape"];
     }
   }
-  return stepOnly ?? stop(kept);
+  return stepOnly ? done(stepOnly, "step_only") : done(stop(kept), "stopped");
 }
 
 // 壊れたJSONは送り手の誤りなので、400で返す。
@@ -110,19 +117,19 @@ function handleTurn(req, res) {
       const request = readRequest(Buffer.concat(chunks).toString("utf8"));
       if (!request) return send(res, 400, JSON.stringify({ error: "bad request" }));
       if (!allowed(visitorOf(req))) return send(res, 429, JSON.stringify({ error: "limit" }));
+      const started = Date.now();
       let result = await answer(request.state, request.message, request.lang, request.previousReply, request.cannotOpen);
-      // 値段の質問には、大谷の店の公開料金を決まった形で添える。値段だけで止まった時は、止めずに参考価格で返す。
-      if (isPriceQuestion(request.message)) {
-        result = result.turn.no_evidence
-          ? { state: result.state, turn: priceTurn(request.message, result.state, request.lang) }
-          : { state: result.state, turn: { ...result.turn, price: pickPrices(request.message, result.state, request.lang) } };
-      }
+      // 値段の質問には、大谷の店の公開料金を決まった形で添える。記録に無くて止まった時も止めたまま添える（止まった相談は大谷に届く）。
+      const priced = isPriceQuestion(request.message);
+      if (priced) result = { ...result, turn: { ...result.turn, price: pickPrices(request.message, result.state, request.lang) } };
       if (result.turn.no_evidence) logQuestion(request.message);
       send(res, 200, JSON.stringify({
         state: result.state,
         signature: seal(result.state),
         turn: result.turn,
         comparisons: comparisons(result.state),
+        // 中で起きたこと（画面に1行で出す。Claudeの文ではなく、プログラムが数えた事実）。
+        trace: traceOf({ before: request.state, after: result.state, turn: result.turn, flows, ...result.meta, ms: Date.now() - started, price: priced }),
       }));
     } catch (error) {
       console.error(error);
