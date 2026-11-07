@@ -2,7 +2,7 @@ services:
   - type: web
     name: daijoubu-check
     runtime: node
-    plan: free
+    plan: starter
     buildCommand: npm ci
     startCommand: node src/server.mjs
     healthCheckPath: /api/cards
